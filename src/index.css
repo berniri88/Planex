@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;       /* Pure White App Background */
+    --foreground: 224 71% 4%;      /* Dark Text */
+    
+    --card: 0 0% 100%;             /* White Cards */
+    --card-foreground: 224 71% 4%;
+    
+    --popover: 0 0% 100%;          /* White Modals */
+    --popover-foreground: 224 71% 4%;
+    
+    --primary: 221 83% 53%;        /* Planex Blue */
+    --primary-foreground: 210 40% 98%;
+    
+    --secondary: 0 0% 100%;        /* White secondary surfaces */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    
+    --muted: 0 0% 100%;            /* White muted surfaces */
+    --muted-foreground: 215.4 16.3% 46.9%; /* Gray text for muted */
+    
+    --accent: 0 0% 100%;           /* White accent surfaces */
+    --accent-foreground: 222.2 47.4% 11.2%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 32% 91%;       /* Light gray border for all those white surfaces */
+    --input: 214.3 32% 91%;
+    --ring: 221.2 83.2% 53.3%;
+    
+    --radius: 2rem;
+    
+    /* Zero transparency shadows to avoid greyish look */
+    --shadow-premium: 0 20px 40px -10px rgba(0,0,0,0.1);
+  }
+
+  .dark {
+    --background: 224 71% 4%;      /* OLED Black */
+    --foreground: 210 40% 98%;     /* Off White text */
+    
+    --card: 224 71% 6%;            /* Slightly elevated card OLED */
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 224 71% 6%;         /* Modals */
+    --popover-foreground: 210 40% 98%;
+    
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    
+    --secondary: 224 71% 10%;      /* Elevated buttons */
+    --secondary-foreground: 210 40% 98%;
+    
+    --muted: 224 71% 10%;          /* Inputs etc */
+    --muted-foreground: 215 20.2% 65.1%;
+    
+    --accent: 224 71% 10%;
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer components {
+  /* Forced white for light mode */
+  .glass {
+    @apply bg-background/80 backdrop-blur-3xl border-b border-border;
+  }
+  
+  .premium-card {
+    @apply bg-card shadow-premium rounded-[2.5rem] border border-border;
+  }
+}
+
+body {
+  @apply bg-background text-foreground;
+  margin: 0;
+  padding: 0;
+}
