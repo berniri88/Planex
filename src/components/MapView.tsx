@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTripStore } from '../store/useTripStore';
 import { ItemFormModal, CATEGORIES } from './ItemFormModal';
 import { type TravelItem } from '../lib/mockData';
-import { Navigation, Edit3, Calendar, DollarSign, Box, ChevronUp, ChevronDown } from 'lucide-react';
+import { Navigation, Edit3, Calendar, Box, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import gpxParser from 'gpxparser';

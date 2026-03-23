@@ -9,8 +9,7 @@ import { Itinerary } from './components/Itinerary';
 import { CreateTripModal } from './components/CreateTripModal';
 import { Expenses } from './components/Expenses';
 import { Button } from './components/ui/Button';
-import { LogOut, ArrowLeft, Globe, Map as MapIcon, Mountain, Moon, Sun, Calendar, Landmark, MapPin } from 'lucide-react';
-import { mockTrips } from './lib/mockData';
+import { LogOut, ArrowLeft, Globe, Map as MapIcon, Mountain, Moon, Sun, Calendar, Landmark } from 'lucide-react';
 import { hapticFeedback } from './lib/haptics';
 import { MapView } from './components/MapView';
 

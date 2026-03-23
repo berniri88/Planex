@@ -11,7 +11,7 @@ interface AddItemModalProps {
   tripId: string;
 }
 
-export const AddItemModal = ({ isOpen, onClose, tripId }: AddItemModalProps) => {
+export const AddItemModal = ({ isOpen, onClose }: Omit<AddItemModalProps, 'tripId'>) => {
   const [name, setName] = useState('');
   const [type, setType] = useState<'flight' | 'accommodation' | 'food' | 'attraction'>('flight');
   const [date, setDate] = useState('');
@@ -26,9 +26,9 @@ export const AddItemModal = ({ isOpen, onClose, tripId }: AddItemModalProps) => 
       type: type as any,
       start_time: date,
       description: notes,
-      status: 'confirmed',
+      status: 'confirmado',
       timezone: 'UTC', // Default
-      location: '' // Required property
+      location: { address: '' }
     });
     hapticFeedback('success');
     onClose();

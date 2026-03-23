@@ -16,13 +16,6 @@ const IconOptions = [
   { id: 'Mountain', icon: Mountain, label: 'Nature' },
 ];
 
-const ColorOptions = [
-  'bg-primary/5',
-  'bg-red-50',
-  'bg-blue-50',
-  'bg-green-50',
-  'bg-purple-50',
-];
 
 export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
   const createTrip = useTripStore(state => state.createTrip);
