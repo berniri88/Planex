@@ -124,7 +124,7 @@ export const useTripStore = create<TripState>()(
           icon: newTrip.icon || 'Globe',
           color: newTrip.color || 'bg-primary/5',
           main_currency: newTrip.mainCurrency || 'USD',
-          destination_timezone: newTrip.destinationTimezone || 'UTC',
+          destination_timezone: newTrip.destinationTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
           user_id: user.id
         }]).select().single();
 

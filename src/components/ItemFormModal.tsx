@@ -1,23 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  X, Plane, Bus as BusIcon, Train, Car, Navigation, Hotel, Map, Utensils, Box,
-  UploadCloud, File as FileIcon, Trash2, MapPin
+  X, Plane, Bus as BusIcon, Train, Car, Navigation, Hotel, Map, Utensils, Box,  MapPin, 
+  UploadCloud, 
+  Trash2, 
+  FileIcon, 
+  ChevronDown, 
+  CheckCircle2, 
+  Lightbulb, 
+  Check,
+  CreditCard,
+  Clock,
+  Info,
+  Calendar as CalendarIcon,
+  Paperclip
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useTripStore } from '../store/useTripStore';
 import { type TravelItem, type TravelItemCategory, type LocationData, type Attachment } from '../lib/mockData';
 import { cn } from '../lib/utils';
 import { hapticFeedback } from '../lib/haptics';
+import { getHomeTimezone, formatForInput } from '../lib/timezone';
+import { MootsTimePicker } from './MootsDatePicker';
+import { GpxTrackTab } from './GpxTrackTab';
+import { DeleteConfirmModal } from './ui/DeleteConfirmModal';
 
 interface ItemFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  mode: 'create' | 'edit' | 'view';
+  mode: 'create' | 'edit' | 'view' | 'duplicate';
   initialData?: TravelItem;
 }
 
-const CATEGORIES: { id: TravelItemCategory; label: string; icon: any }[] = [
+export const CATEGORIES: { id: TravelItemCategory; label: string; icon: any }[] = [
   { id: 'vuelo', label: 'Vuelo', icon: Plane },
   { id: 'bus', label: 'Bus', icon: BusIcon },
   { id: 'tren', label: 'Tren', icon: Train },
@@ -29,7 +44,20 @@ const CATEGORIES: { id: TravelItemCategory; label: string; icon: any }[] = [
   { id: 'otros', label: 'Otros', icon: Box },
 ];
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'ARS', 'BRL'];
+const STATUS_OPTIONS = [
+  { id: 'idea', label: 'Idea', icon: Lightbulb },
+  { id: 'tentativo', label: 'Tentativo', icon: Clock },
+  { id: 'confirmado', label: 'Confirmado', icon: CheckCircle2 },
+];
+
+const PAYMENT_STATUS_OPTIONS = [
+  { id: 'reference', label: 'Referencia', icon: Info },
+  { id: 'reserved', label: 'Reserva (Pago 0)', icon: Clock },
+  { id: 'partial', label: 'Pago Parcial', icon: CreditCard },
+  { id: 'paid', label: 'Pagado', icon: CheckCircle2 },
+];
+
+const CURRENCIES = ['USD', 'EUR', 'GBP', 'ARS', 'BRL', 'CLP', 'MXN'];
 
 // Magic Coordinate Parser
 const parseMagicLocation = (input: string): LocationData => {
@@ -48,14 +76,94 @@ const parseMagicLocation = (input: string): LocationData => {
 const isTransport = (type: TravelItemCategory) => 
   ['vuelo', 'bus', 'tren', 'taxi', 'otro_transporte'].includes(type);
 
+const CustomDropdown = ({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder, 
+  disabled 
+}: { 
+  options: { id: string; label: string; icon?: any }[];
+  value: string;
+  onChange: (id: any) => void;
+  placeholder: string;
+  disabled?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(o => o.id === value);
+
+  return (
+    <div className="relative w-full">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-5 py-3.5 bg-secondary rounded-2xl border-2 border-border focus:border-primary/30 outline-none text-sm font-bold transition-all hover:bg-secondary/80"
+      >
+        <div className="flex items-center gap-3 truncate">
+          {selectedOption ? (
+            <>
+              {selectedOption.icon && <selectedOption.icon size={18} className="text-primary flex-shrink-0" />}
+              <span className="truncate">{selectedOption.label}</span>
+            </>
+          ) : (
+            <span className="text-muted-foreground">{placeholder}</span>
+          )}
+        </div>
+        <ChevronDown size={16} className={cn("text-muted-foreground transition-transform flex-shrink-0 ml-2", isOpen && "rotate-180")} />
+      </button>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <div className="fixed inset-0 z-[150]" onClick={() => setIsOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: -4, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.95 }}
+              className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden z-[160] max-h-60 overflow-y-auto"
+            >
+              <div className="p-1.5 space-y-1">
+                {options.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.id);
+                      setIsOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all",
+                      value === opt.id ? "bg-primary text-white" : "hover:bg-secondary text-foreground"
+                    )}
+                  >
+                    {opt.icon && <opt.icon size={18} className={cn("flex-shrink-0", value === opt.id ? "text-white" : "text-muted-foreground")} />}
+                    <span className="truncate">{opt.label}</span>
+                    {value === opt.id && <Check size={14} className="ml-auto flex-shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormModalProps) => {
   const isView = mode === 'view';
-  const { addItineraryItem, updateItineraryItem } = useTripStore((state: any) => ({
+  const { addItineraryItem, updateItineraryItem, removeItineraryItem, getActiveTrip } = useTripStore((state: any) => ({
     addItineraryItem: state.addItineraryItem,
-    updateItineraryItem: state.updateItineraryItem
+    updateItineraryItem: state.updateItineraryItem,
+    removeItineraryItem: state.removeItineraryItem,
+    getActiveTrip: state.getActiveTrip
   }));
 
-  const [activeTab, setActiveTab] = useState<'info' | 'adjuntos'>('info');
+  const trip = getActiveTrip();
+
+  const [activeTab, setActiveTab] = useState<'info' | 'costos' | 'adjuntos' | 'gpx'>('info');
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   // Form State
   const [type, setType] = useState<TravelItemCategory>('vuelo');
@@ -74,17 +182,22 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
   const [estimatedCost, setEstimatedCost] = useState('');
   const [realCost, setRealCost] = useState('');
   const [currency, setCurrency] = useState('USD');
+  const [paymentStatus, setPaymentStatus] = useState<'reference' | 'reserved' | 'partial' | 'paid'>('reference');
+  const [nextPaymentAmount, setNextPaymentAmount] = useState('');
+  const [nextPaymentDate, setNextPaymentDate] = useState('');
   
   const [reservationRef, setReservationRef] = useState('');
   const [notes, setNotes] = useState('');
+  const [gpxUrl, setGpxUrl] = useState<string | undefined>(undefined);
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   // Search State
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState<'origin' | 'destination' | 'location' | null>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
-  // Debounced Search Logic with Photon (More lenient than Nominatim)
+  // Debounced Search Logic with Photon
   useEffect(() => {
     const query = isSearching === 'origin' ? origin.address : 
                  isSearching === 'destination' ? destination.address : 
@@ -99,7 +212,6 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
       try {
         const resp = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=en`);
         const data = await resp.json();
-        // Photon uses GeoJSON format: data.features
         setSearchResults(data.features || []);
       } catch (err) {
         console.error("Photon Search Error:", err);
@@ -111,12 +223,28 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
 
   const selectAddress = (feature: any, target: 'origin' | 'destination' | 'location') => {
     const p = feature.properties;
-    const addr = [p.name, p.street, p.city, p.country].filter(Boolean).join(', ');
+    const currentInput = (target === 'origin' ? origin.address : (target === 'destination' ? destination.address : location.address)) || '';
+    
+    const inputNumber = currentInput.match(/\b\d+\b/)?.[0];
+    const hasNum = p.housenumber || inputNumber;
+    
+    let baseAddr = p.street || p.name;
+    let locationParts = [p.city, p.country].filter(Boolean).join(', ');
+    
+    let finalAddr = baseAddr;
+    if (hasNum && !baseAddr.includes(hasNum)) {
+      finalAddr = `${baseAddr} ${hasNum}`;
+    }
+    if (locationParts) {
+      finalAddr = `${finalAddr}, ${locationParts}`;
+    }
+
     const data = {
-      address: addr || p.name,
+      address: finalAddr || p.name,
       lat: feature.geometry.coordinates[1],
       lng: feature.geometry.coordinates[0]
     };
+    
     if (target === 'origin') setOrigin(data);
     else if (target === 'destination') setDestination(data);
     else setLocation(data);
@@ -127,23 +255,27 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
 
   useEffect(() => {
     if (isOpen) {
-      if ((mode === 'edit' || mode === 'view') && initialData) {
+      if ((mode === 'edit' || mode === 'view' || mode === 'duplicate') && initialData) {
         setType(initialData.type);
         setStatus(initialData.status);
         setName(initialData.name);
         setDescription(initialData.description || '');
         setUrl(initialData.url || '');
-        setStartTime(initialData.start_time ? initialData.start_time.substring(0, 16) : '');
-        setEndTime(initialData.end_time ? initialData.end_time.substring(0, 16) : '');
+        setStartTime(initialData.start_time ? formatForInput(initialData.start_time, initialData.timezone || getHomeTimezone()) : '');
+        setEndTime(initialData.end_time ? formatForInput(initialData.end_time, initialData.timezone || getHomeTimezone()) : '');
         setOrigin(initialData.origin || { address: '' });
         setDestination(initialData.destination || { address: '' });
         setLocation(initialData.location || { address: '' });
         setEstimatedCost(initialData.estimated_cost?.toString() || '');
         setRealCost(initialData.real_cost?.toString() || '');
         setCurrency(initialData.currency || 'USD');
+        setPaymentStatus(initialData.payment_status || 'reference');
+        setNextPaymentAmount(initialData.next_payment_amount?.toString() || '');
+        setNextPaymentDate(initialData.next_payment_date || '');
         setReservationRef(initialData.reservation_ref || '');
         setNotes(initialData.notes || '');
         setAttachments(initialData.attachments || []);
+        setGpxUrl(initialData.gpx_url);
       } else {
         setType('vuelo');
         setStatus('idea');
@@ -158,17 +290,21 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
         setEstimatedCost('');
         setRealCost('');
         setCurrency('USD');
+        setPaymentStatus('reference');
+        setNextPaymentAmount('');
+        setNextPaymentDate('');
         setReservationRef('');
         setNotes('');
         setAttachments([]);
+        setGpxUrl(undefined);
       }
       setActiveTab('info');
       setSearchResults([]);
     }
   }, [isOpen, mode, initialData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (isView) return;
     hapticFeedback('success');
 
@@ -180,16 +316,20 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
       url,
       start_time: startTime ? new Date(startTime).toISOString() : new Date().toISOString(),
       end_time: endTime ? new Date(endTime).toISOString() : undefined,
-      timezone: 'UTC',
+      timezone: trip?.destinationTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       origin: isTransport(type) ? origin : undefined,
       destination: isTransport(type) ? destination : undefined,
       location: (!isTransport(type) && type !== 'actividad') ? location : (type === 'actividad' ? origin : undefined),
       estimated_cost: estimatedCost ? parseFloat(estimatedCost) : undefined,
       real_cost: realCost ? parseFloat(realCost) : undefined,
       currency,
+      payment_status: paymentStatus,
+      next_payment_amount: nextPaymentAmount ? parseFloat(nextPaymentAmount) : undefined,
+      next_payment_date: nextPaymentDate || undefined,
       reservation_ref: reservationRef,
       notes,
-      attachments
+      attachments,
+      gpx_url: gpxUrl
     };
 
     if (type === 'actividad') {
@@ -198,12 +338,20 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
        itemPayload.location = undefined;
     }
 
-    if (mode === 'create') {
+    if (mode === 'create' || mode === 'duplicate') {
       addItineraryItem(itemPayload as any);
-    } else if (initialData) {
+    } else if (initialData && mode === 'edit') {
       if(updateItineraryItem) updateItineraryItem(initialData.id, itemPayload);
     }
     onClose();
+  };
+
+  const handleDelete = () => {
+    if (initialData && removeItineraryItem) {
+      removeItineraryItem(initialData.id);
+      hapticFeedback('warning');
+      onClose();
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -250,247 +398,452 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-popover rounded-[2rem] shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh] pointer-events-auto border border-border overflow-hidden relative"
+            className="bg-popover rounded-[2rem] shadow-2xl w-full max-w-3xl flex flex-col h-[85vh] max-h-[90vh] pointer-events-auto border border-border overflow-hidden relative"
           >
             {/* Header Tabs Navigation */}
-            <div className="flex items-center justify-between p-6 border-b border-border bg-secondary/50">
-              <div className="flex gap-4 items-center flex-1">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mr-2">
-                   <SelectedIcon size={20} />
+            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md relative overflow-hidden group/header h-20 shrink-0">
+              {/* Integrated Side Icon Section */}
+              <div className="flex items-center h-full">
+                <div className="w-24 h-full bg-primary/10 flex items-center justify-center relative overflow-hidden shrink-0 border-r border-border/50">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+                  <SelectedIcon size={48} strokeWidth={1.5} className="text-primary relative z-10 group-hover/header:scale-110 transition-transform duration-500" />
+                  {/* Faint Large Background Icon */}
+                  <SelectedIcon size={120} strokeWidth={0.5} className="absolute -right-8 -bottom-8 text-primary opacity-[0.08] rotate-12 group-hover/header:rotate-[-12deg] transition-all duration-1000" />
                 </div>
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setActiveTab('info')}
-                  className={cn("text-sm font-bold tracking-tight rounded-xl px-4 py-2 hover:bg-black/5", activeTab === 'info' ? "bg-background shadow-sm border border-border" : "text-muted-foreground")}
-                >
-                  Información
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setActiveTab('adjuntos')}
-                  className={cn("text-sm font-bold tracking-tight rounded-xl px-4 py-2 hover:bg-black/5 flex items-center gap-2", activeTab === 'adjuntos' ? "bg-background shadow-sm border border-border" : "text-muted-foreground")}
-                >
-                  Adjuntos
-                  {attachments.length > 0 && <span className="bg-primary text-white text-[10px] px-2 py-0.5 rounded-full">{attachments.length}</span>}
-                </Button>
+
+                <div className="flex bg-secondary/50 p-1.5 rounded-2xl  border-border/50 backdrop-blur-sm ml-6">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setActiveTab('info')}
+                    className={cn("text-xs font-black uppercase tracking-widest rounded-xl px-4 py-2 transition-all flex items-center gap-2", activeTab === 'info' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
+                  >
+                    <Info size={14} />
+                    Información
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setActiveTab('costos')}
+                    className={cn("text-xs font-black uppercase tracking-widest rounded-xl px-4 py-2 transition-all flex items-center gap-2", activeTab === 'costos' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
+                  >
+                    <CreditCard size={14} />
+                    Costo
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setActiveTab('adjuntos')}
+                    className={cn("text-xs font-black uppercase tracking-widest rounded-xl px-4 py-2 transition-all flex items-center gap-2", activeTab === 'adjuntos' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
+                  >
+                    <Paperclip size={14} />
+                    Adjuntos
+                    {attachments.length > 0 && <span className="bg-primary text-white text-[10px] px-2 py-0.5 rounded-full">{attachments.length}</span>}
+                  </Button>
+                  {type === 'actividad' && (
+                    <Button 
+                    variant="ghost" 
+                    onClick={() => setActiveTab('gpx')}
+                    className={cn("text-xs font-black uppercase tracking-widest rounded-xl px-4 py-2 transition-all flex items-center gap-2", activeTab === 'gpx' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
+                  >
+                    <Navigation size={14} />
+                    Track GPX
+                    {gpxUrl && <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />}
+                  </Button>
+                  )}
+                </div>
               </div>
               
-              <Button variant="ghost" size="sm" onClick={onClose} className="w-10 h-10 p-0 rounded-2xl bg-secondary border border-border ml-2">
-                <X size={20} />
-              </Button>
+              <div className="flex items-center gap-2 pr-6 relative z-10">
+                {mode === 'edit' && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setIsDeleteConfirmOpen(true)} 
+                    className="w-10 h-10 p-0 rounded-2xl bg-secondary border border-border hover:bg-red-500 hover:text-white transition-all group/delete shadow-sm"
+                    title="Eliminar ítem"
+                  >
+                    <Trash2 size={18} className="group-hover/delete:scale-110 transition-transform" />
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={onClose} className="w-10 h-10 p-0 rounded-2xl bg-secondary border border-border hover:bg-primary hover:text-white transition-colors">
+                  <X size={20} />
+                </Button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
-              
+            <DeleteConfirmModal 
+              isOpen={isDeleteConfirmOpen} 
+              onClose={() => setIsDeleteConfirmOpen(false)} 
+              onConfirm={handleDelete} 
+            />
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              {mode === 'duplicate' && (
+                <div className="bg-amber-500/10 text-amber-600 p-3 text-center text-[10px] font-black uppercase tracking-[0.2em] border-b border-amber-500/20 flex items-center justify-center gap-2">
+                  <Clock size={14} className="animate-pulse" />
+                  Duplicando Ítem
+                </div>
+              )}
               {activeTab === 'info' ? (
-                <>
-                  {/* Category Selection */}
-                  <div className="space-y-4">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Tipo</span>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                       {CATEGORIES.map((c) => (
-                         <button
-                           key={c.id}
-                           type="button"
-                           disabled={isView}
-                           onClick={() => setType(c.id)}
-                           className={cn(
-                             "flex flex-col items-center justify-center p-4 rounded-[1.5rem] border-2 transition-all duration-300",
-                             type === c.id ? "border-primary bg-primary/5 text-primary scale-105 shadow-sm" : "border-border bg-secondary text-muted-foreground hover:border-primary/30",
-                             isView && type !== c.id && "opacity-40 grayscale"
-                           )}
-                         >
-                           <c.icon size={20} className="mb-2" />
-                           <span className="text-[10px] font-black uppercase tracking-wider">{c.label}</span>
-                         </button>
-                       ))}
+                <form onSubmit={handleSubmit} className="p-8 space-y-10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {/* Category Selection */}
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Tipo de Ítem</span>
+                      <CustomDropdown 
+                        options={CATEGORIES}
+                        value={type}
+                        onChange={setType}
+                        placeholder="Seleccionar tipo"
+                        disabled={isView}
+                      />
+                    </div>
+
+                    {/* Status Selection */}
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Estado</span>
+                      <CustomDropdown 
+                        options={STATUS_OPTIONS}
+                        value={status}
+                        onChange={(s) => setStatus(s as any)}
+                        placeholder="Seleccionar estado"
+                        disabled={isView}
+                      />
                     </div>
                   </div>
 
-                  {/* Status Segmented Control */}
-                  <div className="space-y-4">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Estado</span>
-                    <div className="flex p-1 bg-secondary border border-border rounded-2xl">
-                      {['idea', 'tentativo', 'confirmado'].map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          disabled={isView}
-                          onClick={() => setStatus(s as any)}
-                          className={cn(
-                            "flex-1 py-3 px-4 rounded-xl transition-all font-black text-[11px] uppercase tracking-widest",
-                            status === s ? "bg-background text-primary shadow-sm scale-[1.02]" : "text-muted-foreground hover:text-foreground",
-                            isView && status !== s && "hidden"
-                          )}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Título *</span>
+                      <input readOnly={isView} required className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-base font-bold transition-all" placeholder="Ej: Vuelo Buenos Aires -> Tokyo" value={name} onChange={e => setName(e.target.value)} />
                     </div>
-                  </div>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Título *</span>
-                      <input readOnly={isView} required className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-bold transition-all" placeholder="Ej: Vuelo Buenos Aires -> Tokyo" value={name} onChange={e => setName(e.target.value)} />
+                    {/* Premium Date Range Picker Integration */}
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Horario</span>
+                      
+                      <button 
+                        type="button"
+                        disabled={isView}
+                        onClick={() => setIsPickerOpen(true)}
+                        className={cn(
+                          "w-full group relative overflow-hidden flex flex-col sm:flex-row gap-4 p-6 sm:p-8 rounded-[2.5rem] bg-secondary border-2 border-border hover:border-primary/30 transition-all duration-500",
+                          isPickerOpen && "ring-4 ring-primary/10 border-primary/40"
+                        )}
+                      >
+                        {/* Left: Start */}
+                        <div className="flex-1 space-y-3 text-left">
+                           <div className="flex items-center gap-2 text-muted-foreground/60">
+                              <CalendarIcon size={14} className="group-hover:text-primary transition-colors" />
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Inicio</span>
+                           </div>
+                           <div className="space-y-1">
+                              <p className="text-base font-black text-foreground truncate">{new Date(startTime || Date.now()).toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                              <p className="text-4xl font-black tracking-tighter text-primary group-hover:scale-105 transition-transform origin-left">
+                                 {new Date(startTime || Date.now()).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                              </p>
+                           </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="flex items-center justify-center opacity-20">
+                           <div className="w-px h-12 bg-foreground hidden sm:block" />
+                           <div className="h-px w-full bg-foreground sm:hidden" />
+                        </div>
+
+                        {/* Right: End */}
+                        <div className="flex-1 space-y-3 text-left">
+                           <div className="flex items-center gap-2 text-muted-foreground/60">
+                              <Clock size={14} className="group-hover:text-primary transition-colors" />
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Fin</span>
+                           </div>
+                           <div className="space-y-1">
+                              <p className="text-base font-black text-foreground truncate">{endTime ? new Date(endTime).toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' }) : '-'}</p>
+                              <p className="text-4xl font-black tracking-tighter text-muted-foreground/40 group-hover:text-primary/60 transition-colors">
+                                 {endTime ? new Date(endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'}
+                              </p>
+                           </div>
+                        </div>
+                      </button>
                     </div>
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Descripción</span>
-                      <textarea readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium min-h-[100px] resize-none transition-all" placeholder="Notas adicionales..." value={description} onChange={e => setDescription(e.target.value)} />
-                    </div>
-                    {(!isView || url) && (
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">URL Reservación / Enlace</span>
-                        <input readOnly={isView} type="url" className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} />
+
+                    {/* Searchable Location Input */}
+                    {(isTransport(type) || type === 'actividad') ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {['origin', 'destination'].map((field: any) => (
+                          <div key={field} className="space-y-3 relative">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">{field === 'origin' ? 'Origen' : 'Destino'}</span>
+                            <div className="relative">
+                              <MapPin size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                              <input 
+                                readOnly={isView}
+                                className="w-full pl-12 pr-12 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" 
+                                placeholder={field === 'origin' ? "Ej: Aeropuerto Ezeiza 123" : "Ej: Tokyo Station"} 
+                                value={field === 'origin' ? origin.address : destination.address} 
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  const parsed = parseMagicLocation(val);
+                                  
+                                  const update = (prev: LocationData) => {
+                                    if (!val.trim()) return { address: '' };
+                                    const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                    const oldClean = clean(prev.address || '');
+                                    const newClean = clean(val);
+                                    const isRefinement = prev.lat && (newClean.includes(oldClean) || oldClean.includes(newClean) || newClean.startsWith(oldClean.substring(0, 10)));
+                                    
+                                    return {
+                                      address: val,
+                                      lat: parsed.lat || (isRefinement ? prev.lat : undefined),
+                                      lng: parsed.lng || (isRefinement ? prev.lng : undefined),
+                                    };
+                                  };
+
+                                  if (field === 'origin') setOrigin(update);
+                                  else if (field === 'destination') setDestination(update);
+                                  if (!isView && !parsed.lat) setIsSearching(field);
+                                }} 
+                              />
+                              {(field === 'origin' ? origin.lat : destination.lat) && (
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-500/10 text-green-500 p-1.5 rounded-full border border-green-500/20 shadow-sm z-10 transition-all scale-110">
+                                  <CheckCircle2 size={16} strokeWidth={3} />
+                                </div>
+                              )}
+                              {searchResults.length > 0 && isSearching === field && (
+                                <div className="absolute top-full left-0 right-0 z-[100] mt-2 bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+                                  {searchResults.map((f, i) => {
+                                    const p = f.properties;
+                                    return (
+                                      <button key={i} type="button" className="w-full p-4 text-left hover:bg-secondary text-sm border-b border-border last:border-0 transition-colors font-bold group flex items-center justify-between" onClick={() => selectAddress(f, field)}>
+                                        <div className="flex flex-col">
+                                          <span className="text-foreground group-hover:text-primary transition-colors">{p.name} {p.housenumber}</span>
+                                          <span className="text-[10px] text-muted-foreground uppercase tracking-widest">{[p.city, p.country].filter(Boolean).join(', ')}</span>
+                                        </div>
+                                        <div className="w-6 h-6 rounded-lg bg-secondary flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:bg-primary/20 group-hover:text-primary transition-all">
+                                          <Check size={14} />
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
+                    ) : (
+                      <div className="space-y-3 relative">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Ubicación</span>
+                        <div className="relative">
+                          <MapPin size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                          <input 
+                            readOnly={isView}
+                            className="w-full pl-12 pr-12 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" 
+                            placeholder="Ej: Calle 123, Ciudad" 
+                            value={location.address} 
+                            onChange={e => {
+                              const val = e.target.value;
+                              const parsed = parseMagicLocation(val);
+                              
+                              setLocation(prev => {
+                                if (!val.trim()) return { address: '' };
+                                const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                const oldClean = clean(prev.address || '');
+                                const newClean = clean(val);
+                                const isRefinement = prev.lat && (newClean.includes(oldClean) || oldClean.includes(newClean) || newClean.startsWith(oldClean.substring(0, 10)));
 
-                  {/* Dates in 24h format */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Inicio (Formato 24h)</span>
-                      <input readOnly={isView} required type="datetime-local" className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-bold transition-all" value={startTime} onChange={e => setStartTime(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Fin (Formato 24h)</span>
-                      <input readOnly={isView} type="datetime-local" className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" value={endTime} onChange={e => setEndTime(e.target.value)} />
-                    </div>
-                  </div>
+                                return {
+                                  address: val,
+                                  lat: parsed.lat || (isRefinement ? prev.lat : undefined),
+                                  lng: parsed.lng || (isRefinement ? prev.lng : undefined),
+                                };
+                              });
 
-                  {/* Searchable Location Input */}
-                  {(isTransport(type) || type === 'actividad') ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {['origin', 'destination'].map((field: any) => (
-                        <div key={field} className="space-y-2 relative">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">{field === 'origin' ? 'Origen' : 'Destino'}</span>
-                          <div className="relative">
-                            <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                            <input 
-                              readOnly={isView}
-                              className="w-full pl-12 pr-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" 
-                              placeholder="Buscar dirección..." 
-                              value={field === 'origin' ? origin.address : destination.address} 
-                              onChange={e => {
-                                const val = e.target.value;
-                                const parsed = parseMagicLocation(val);
-                                if (field === 'origin') setOrigin(parsed);
-                                else setDestination(parsed);
-                                if (!isView && !parsed.lat) setIsSearching(field);
-                              }} 
-                            />
-                            {searchResults.length > 0 && isSearching === field && (
-                              <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-popover border border-border rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                              if (!isView && !parsed.lat) setIsSearching('location');
+                            }} 
+                          />
+                          {location.lat && (
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-500/10 text-green-500 p-1.5 rounded-full border border-green-500/20 shadow-sm z-10 transition-all scale-110">
+                              <CheckCircle2 size={16} strokeWidth={3} />
+                            </div>
+                          )}
+                           {searchResults.length > 0 && isSearching === 'location' && (
+                              <div className="absolute top-full left-0 right-0 z-[100] mt-2 bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
                                 {searchResults.map((f, i) => {
                                   const p = f.properties;
-                                  const display = [p.name, p.city, p.country].filter(Boolean).join(', ');
                                   return (
-                                    <button key={i} type="button" className="w-full p-3 text-left hover:bg-secondary text-xs border-b border-border last:border-0" onClick={() => selectAddress(f, field)}>
-                                      {display}
+                                    <button key={i} type="button" className="w-full p-4 text-left hover:bg-secondary text-sm border-b border-border last:border-0 transition-colors font-bold group flex items-center justify-between" onClick={() => selectAddress(f, 'location')}>
+                                      <div className="flex flex-col">
+                                        <span className="text-foreground group-hover:text-primary transition-colors">{p.name} {p.housenumber}</span>
+                                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">{[p.city, p.country].filter(Boolean).join(', ')}</span>
+                                      </div>
+                                      <div className="w-6 h-6 rounded-lg bg-secondary flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:bg-primary/20 group-hover:text-primary transition-all">
+                                        <Check size={14} />
+                                      </div>
                                     </button>
                                   );
                                 })}
                               </div>
                             )}
-                          </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-2 relative">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Ubicación</span>
-                      <div className="relative">
-                        <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <input 
-                          readOnly={isView}
-                          className="w-full pl-12 pr-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" 
-                          placeholder="Buscar lugar..." 
-                          value={location.address} 
-                          onChange={e => {
-                            const val = e.target.value;
-                            const parsed = parseMagicLocation(val);
-                            setLocation(parsed);
-                            if (!isView && !parsed.lat) setIsSearching('location');
-                          }} 
-                        />
-                         {searchResults.length > 0 && isSearching === 'location' && (
-                            <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-popover border border-border rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-                              {searchResults.map((f, i) => {
-                                const p = f.properties;
-                                const display = [p.name, p.city, p.country].filter(Boolean).join(', ');
-                                return (
-                                  <button key={i} type="button" className="w-full p-3 text-left hover:bg-secondary text-xs border-b border-border last:border-0" onClick={() => selectAddress(f, 'location')}>
-                                    {display}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Economic Data */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Estimado</span>
-                      <input readOnly={isView} type="number" step="0.01" className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-bold transition-all" placeholder="0.00" value={estimatedCost} onChange={e => setEstimatedCost(e.target.value)} />
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Descripción</span>
+                      <textarea readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium min-h-[100px] resize-none transition-all" placeholder="Notas adicionales..." value={description} onChange={e => setDescription(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Costo Real</span>
-                      <input readOnly={isView} type="number" step="0.01" className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-bold transition-all" placeholder="0.00" value={realCost} onChange={e => setRealCost(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Moneda</span>
-                       <select disabled={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-bold transition-all appearance-none" value={currency} onChange={e => setCurrency(e.target.value)}>
-                         {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                       </select>
-                    </div>
+
+                    {(!isView || url) && (
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Enlace de Reservación</span>
+                        <input readOnly={isView} type="url" className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} />
+                      </div>
+                    )}
                   </div>
 
-                  {/* References & Notes */}
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Referencia Reserva</span>
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Referencia Reserva</span>
                       <input readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-bold transition-all uppercase" placeholder="Ej: ABC123XYZ" value={reservationRef} onChange={e => setReservationRef(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Notas</span>
-                      <textarea readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium min-h-[80px] resize-none transition-all" placeholder="Notas internas..." value={notes} onChange={e => setNotes(e.target.value)} />
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Notas Internas</span>
+                      <textarea readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium min-h-[80px] resize-none transition-all" placeholder="Detalles privados..." value={notes} onChange={e => setNotes(e.target.value)} />
                     </div>
                   </div>
-                </>
-              ) : (
-                <div className="space-y-8">
+                </form>
+              ) : activeTab === 'costos' ? (
+                <div className="p-8 space-y-10">
+                  {/* Section: COSTO */}
+                  <div className="space-y-8 p-8 bg-secondary/40 rounded-[2.5rem] border-2 border-border/50 shadow-inner">
+                    <div className="flex items-center gap-4 ml-1">
+                      <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                        <CreditCard size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black uppercase tracking-widest text-foreground">Gestión de Costos</h4>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">Presupuesto y estados de pago</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Moneda</span>
+                        <div className="relative">
+                          <select 
+                            disabled={isView} 
+                            className="w-full px-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-base font-bold transition-all appearance-none" 
+                            value={currency} 
+                            onChange={e => setCurrency(e.target.value)}
+                          >
+                            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                          <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                            <ChevronDown size={16} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Costo Estimado</span>
+                        <input 
+                          readOnly={isView} 
+                          type="number" 
+                          step="0.01" 
+                          className="w-full px-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-base font-bold transition-all" 
+                          placeholder="0.00" 
+                          value={estimatedCost} 
+                          onChange={e => setEstimatedCost(e.target.value)} 
+                        />
+                      </div>
+
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Costo Real</span>
+                        <input 
+                          readOnly={isView} 
+                          type="number" 
+                          step="0.01" 
+                          className="w-full px-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-base font-bold transition-all" 
+                          placeholder="0.00" 
+                          value={realCost} 
+                          onChange={e => setRealCost(e.target.value)} 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Estado de Pago</span>
+                      <CustomDropdown 
+                        value={paymentStatus} 
+                        onChange={setPaymentStatus} 
+                        options={PAYMENT_STATUS_OPTIONS} 
+                        placeholder="Seleccionar estado de pago..." 
+                      />
+                    </div>
+
+                    <div className="pt-6 border-t border-border/50 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Monto Próximo Pago</span>
+                        <div className="relative">
+                          <CreditCard size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                          <input 
+                            readOnly={isView} 
+                            type="number" 
+                            step="0.01" 
+                            className="w-full pl-12 pr-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-base font-bold transition-all" 
+                            placeholder="0.00" 
+                            value={nextPaymentAmount} 
+                            onChange={e => setNextPaymentAmount(e.target.value)} 
+                          />
+                          <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground uppercase">{currency}</div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Fecha Próximo Pago</span>
+                        <div className="relative">
+                          <CalendarIcon size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                          <input 
+                            readOnly={isView} 
+                            type="date" 
+                            className="w-full pl-12 pr-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-sm font-bold transition-all" 
+                            value={nextPaymentDate} 
+                            onChange={e => setNextPaymentDate(e.target.value)} 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : activeTab === 'adjuntos' ? (
+                <div className="p-8 space-y-8">
                   {!isView && (
-                    <div className="relative border-2 border-dashed border-border hover:border-primary/50 bg-secondary rounded-[2rem] p-10 flex flex-col items-center justify-center text-center transition-all group overflow-hidden">
+                    <div className="relative border-4 border-dashed border-border hover:border-primary/50 bg-secondary rounded-[2.5rem] p-12 flex flex-col items-center justify-center text-center transition-all group overflow-hidden">
                       <input 
                         type="file" 
                         multiple 
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                         onChange={handleFileUpload}
                       />
-                      <div className="w-16 h-16 rounded-3xl bg-background flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
-                        <UploadCloud size={24} />
+                      <div className="w-20 h-20 rounded-[2rem] bg-background flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-xl">
+                        <UploadCloud size={32} />
                       </div>
-                      <h4 className="text-lg font-black tracking-tight mb-2">Subir archivos</h4>
-                      <p className="text-xs text-muted-foreground max-w-xs">PDFs, imágenes o documentos (Máx. 10MB).</p>
+                      <h4 className="text-xl font-black tracking-tight mb-2">Subir archivos</h4>
+                      <p className="text-sm text-muted-foreground max-w-xs">PDFs, imágenes o documentos (Máx. 10MB).</p>
                     </div>
                   )}
 
                   {attachments.length > 0 && (
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
                       {attachments.map((att, idx) => (
-                        <div key={att.id} className="flex flex-col sm:flex-row gap-3 p-4 bg-secondary border border-border rounded-[1.5rem] items-start sm:items-center">
-                          <div className="w-10 h-10 rounded-xl bg-background flex items-center justify-center flex-shrink-0">
-                             <FileIcon size={18} className="text-primary" />
+                        <div key={att.id} className="flex flex-col sm:flex-row gap-4 p-5 bg-secondary border border-border rounded-[2rem] items-start sm:items-center shadow-sm">
+                          <div className="w-12 h-12 rounded-2xl bg-background flex items-center justify-center flex-shrink-0 shadow-inner">
+                             <FileIcon size={20} className="text-primary" />
                           </div>
                           <div className="flex-1 min-w-0 space-y-2 w-full">
                              <p className="text-sm font-bold truncate">{att.name}</p>
                              <input 
                                readOnly={isView}
-                               className="w-full text-xs px-3 py-2 bg-background border border-border rounded-lg"
-                               placeholder="Referencia..."
+                               className="w-full text-xs px-4 py-2 bg-background border border-border rounded-xl outline-none focus:border-primary/30"
+                               placeholder="Nota de referencia..."
                                value={att.referenceText}
                                onChange={(e) => {
                                  const newAtt = [...attachments];
@@ -500,8 +853,8 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                              />
                           </div>
                           {!isView && (
-                            <Button variant="destructive" size="sm" type="button" className="w-10 h-10 p-0 rounded-xl" onClick={() => setAttachments(attachments.filter(a => a.id !== att.id))}>
-                               <Trash2 size={16} />
+                            <Button variant="ghost" size="sm" type="button" className="w-12 h-12 p-0 rounded-2xl bg-secondary/50 border border-border text-destructive hover:bg-destructive hover:text-white transition-all shadow-sm" onClick={() => setAttachments(attachments.filter(a => a.id !== att.id))}>
+                               <Trash2 size={18} />
                             </Button>
                           )}
                         </div>
@@ -509,20 +862,59 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                     </div>
                   )}
                 </div>
+              ) : (
+                <GpxTrackTab 
+                  itemType={type}
+                  gpxUrl={gpxUrl}
+                  onGpxUrlChange={setGpxUrl}
+                  isViewOnly={isView}
+                />
               )}
+            </div>
 
-              {/* Footer */}
-              <div className="sticky bottom-0 bg-popover/80 backdrop-blur-xl border-t border-border p-4 -mx-8 -mb-8 mt-12 flex items-center justify-end gap-3 z-20">
-                <Button variant="ghost" type="button" onClick={onClose} className="rounded-2xl">
-                  {isView ? 'Cerrar' : 'Cancelar'}
+            {/* Fixed Footer */}
+            <div className="bg-popover border-t border-border p-6 flex items-center justify-end gap-3 z-[110] shadow-2xl">
+              <Button variant="ghost" type="button" onClick={onClose} className="rounded-2xl px-8 h-12 font-black uppercase text-xs tracking-widest bg-secondary/50 hover:bg-secondary">
+                {isView ? 'Cerrar' : 'Cancelar'}
+              </Button>
+              {!isView && (
+                <Button onClick={() => handleSubmit()} className="rounded-2xl px-12 h-12 font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                  {mode === 'create' ? 'Crear Ítem' : 'Guardar Cambios'}
                 </Button>
-                {!isView && (
-                  <Button type="submit" className="rounded-2xl px-8 shadow-xl">
-                    {mode === 'create' ? 'Crear Ítem' : 'Guardar'}
-                  </Button>
-                )}
-              </div>
-            </form>
+              )}
+            </div>
+
+            {/* The Moots Picker Overlay */}
+            <AnimatePresence>
+              {isPickerOpen && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setIsPickerOpen(false)}
+                    className="absolute inset-0 bg-black/80 backdrop-blur-3xl"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                    className="relative w-full max-w-4xl bg-background rounded-[3rem] shadow-2xl overflow-hidden border border-border"
+                  >
+                    <MootsTimePicker 
+                      startDate={startTime} 
+                      endDate={endTime || ''} 
+                      onCancel={() => setIsPickerOpen(false)}
+                      onSave={(s: string, e: string) => {
+                        setStartTime(s);
+                        setEndTime(e);
+                        setIsPickerOpen(false);
+                      }}
+                    />
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </div>
       )}

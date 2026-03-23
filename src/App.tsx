@@ -12,6 +12,7 @@ import { Button } from './components/ui/Button';
 import { LogOut, ArrowLeft, Globe, Map as MapIcon, Mountain, Moon, Sun, Calendar, Landmark, MapPin } from 'lucide-react';
 import { mockTrips } from './lib/mockData';
 import { hapticFeedback } from './lib/haptics';
+import { MapView } from './components/MapView';
 
 const IconMap = {
   Globe,
@@ -90,18 +91,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const MapView = () => (
-  <div className="flex-1 flex flex-col items-center justify-center p-12 space-y-8 animate-in fade-in zoom-in duration-700">
-     <div className="w-32 h-32 rounded-[3.5rem] bg-primary/10 flex items-center justify-center text-primary relative">
-        <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping opacity-20" />
-        <MapPin size={48} />
-     </div>
-     <div className="text-center space-y-2">
-        <h3 className="text-3xl font-black tracking-tighter italic">Map View</h3>
-        <p className="text-muted-foreground max-w-xs font-medium">Coming soon for your travel planning.</p>
-     </div>
-  </div>
-);
 
 const TripContainer = () => {
   const { id } = useParams();

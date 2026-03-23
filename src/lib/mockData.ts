@@ -45,7 +45,14 @@ export interface TravelItem {
   status: 'idea' | 'tentativo' | 'confirmado';
   branchId?: string; // Which branch this item belongs to
   
+  // Payment tracking
+  payment_status?: 'reference' | 'reserved' | 'paid';
+  amount_paid?: number;
+  next_payment_amount?: number;
+  next_payment_date?: string; // ISO Date
+
   attachments?: Attachment[];
+  gpx_url?: string;
 }
 
 export interface Trip {

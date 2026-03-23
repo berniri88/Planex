@@ -57,20 +57,22 @@ export const TravelerClock = ({ dateString, timezone, variant = 'detailed' }: Tr
       </div>
 
       {/* Comparison: Relative to Home Time */}
-      <motion.div 
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="flex items-center gap-2 text-muted-foreground/60 text-[11px] font-bold group"
-      >
-        <div className="w-5 h-5 flex items-center justify-center bg-white/5 rounded-full border border-white/10 group-hover:text-primary transition-colors">
-          <Home size={10} />
-        </div>
-        <span>{info.homeTime} Home Time</span>
-        <div className="flex items-center gap-1 opacity-40">
-          <ArrowRight size={10} />
-          <span>{info.offsetDiffHours > 0 ? `+${info.offsetDiffHours}` : info.offsetDiffHours}h shift</span>
-        </div>
-      </motion.div>
+      {info.offsetDiffHours !== 0 && (
+        <motion.div 
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-2 text-muted-foreground/60 text-[11px] font-bold group"
+        >
+          <div className="w-5 h-5 flex items-center justify-center bg-white/5 rounded-full border border-white/10 group-hover:text-primary transition-colors">
+            <Home size={10} />
+          </div>
+          <span>{info.homeTime} Home Time</span>
+          <div className="flex items-center gap-1 opacity-40">
+            <ArrowRight size={10} />
+            <span>{info.offsetDiffHours > 0 ? `+${info.offsetDiffHours}` : info.offsetDiffHours}h shift</span>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };

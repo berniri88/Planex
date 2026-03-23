@@ -132,3 +132,33 @@ export function getTravelerClockInfo(
     isPast,
   };
 }
+
+/**
+ * Format a date for <input type="datetime-local"> in a specific timezone.
+ */
+export function formatForInput(dateISO: string, timezone: string): string {
+  if (!dateISO) return '';
+  const date = new Date(dateISO);
+  
+  // Create a formatter that returns YYYY-MM-DD, HH:mm in the target timezone
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  };
+  
+  const formatter = new Intl.DateTimeFormat('en-CA', options); // en-CA gives YYYY-MM-DD
+  const parts = formatter.formatToParts(date);
+  
+  const year = parts.find(p => p.type === 'year')?.value;
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+  const hour = parts.find(p => p.type === 'hour')?.value;
+  const minute = parts.find(p => p.type === 'minute')?.value;
+  
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
