@@ -175,7 +175,7 @@ export const useTripStore = create<TripState>()(
         const parentItems = get().itineraryItems.filter(item => item.branchId === activeBranchId);
         if (parentItems.length > 0) {
           const itemsToClone = parentItems.map(item => {
-            const { id, ...rest } = item;
+            const { id, branchId, ...rest } = item as any;
             return {
               ...rest,
               branch_id: newBranch.id
@@ -196,6 +196,13 @@ export const useTripStore = create<TripState>()(
           ...item,
           branch_id: get().activeBranchId,
         };
+        // Map camelCase for DB
+        if ('branchId' in payload) {
+          delete (payload as any).branchId;
+        }
+        if ('id' in payload) {
+          delete (payload as any).id;
+        }
         
         const { data: newItem, error } = await supabase.from('travel_items').insert([payload]).select().single();
         

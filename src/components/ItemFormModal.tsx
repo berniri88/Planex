@@ -14,12 +14,13 @@ import {
   Info,
   Calendar as CalendarIcon,
   Paperclip,
-  MoreHorizontal
+  MoreHorizontal,
+  Copy, Download, Share2
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useTripStore } from '../store/useTripStore';
 import { type TravelItem, type TravelItemCategory, type LocationData, type Attachment } from '../lib/mockData';
-import { cn } from '../lib/utils';
+import { cn, downloadItemInfo } from '../lib/utils';
 import { hapticFeedback } from '../lib/haptics';
 import { getHomeTimezone, formatForInput } from '../lib/timezone';
 import { MootsTimePicker } from './MootsDatePicker';
@@ -356,6 +357,19 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
     }
   };
 
+  const handleDuplicate = () => {
+    if (initialData) {
+       addItineraryItem({ 
+         ...initialData, 
+         id: undefined as any, 
+         name: initialData.name + ' (Copia)',
+         branchId: trip?.activeBranchId
+       } as any);
+       hapticFeedback('success');
+       onClose();
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || isView) return;
@@ -403,10 +417,10 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
             className="bg-popover rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl w-full max-w-3xl flex flex-col h-[90vh] sm:h-[85vh] max-h-[95vh] pointer-events-auto border border-border relative"
           >
             {/* Header Tabs Navigation */}
-            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md relative overflow-visible group/header h-16 sm:h-20 shrink-0">
+            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md relative overflow-visible group/header h-16 sm:h-20 shrink-0 rounded-t-[1.5rem] sm:rounded-t-[2.5rem] z-[120]">
               {/* Integrated Side Icon Section */}
               <div className="flex items-center h-full min-w-0">
-                <div className="w-16 sm:w-24 h-full bg-primary/10 flex items-center justify-center relative overflow-hidden shrink-0 border-r border-border/50 hidden sm:flex">
+                <div className="w-16 sm:w-24 h-full bg-primary/10 flex items-center justify-center relative overflow-hidden rounded-tl-[1.5rem] sm:rounded-tl-[2.5rem] shrink-0 border-r border-border/50 hidden sm:flex">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
                   <SelectedIcon size={48} strokeWidth={1.5} className="text-primary relative z-10 group-hover/header:scale-110 transition-transform duration-500" />
                   {/* Faint Large Background Icon */}
@@ -480,11 +494,36 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                           >
                             <button
                               type="button"
-                              onClick={() => { setIsDeleteConfirmOpen(true); setIsMenuOpen(false); }}
-                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all group/delete"
+                              onClick={() => { handleDuplicate(); setIsMenuOpen(false); }}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-all group/item"
                             >
-                              <Trash2 size={14} className="group-hover/delete:scale-110 transition-transform" />
-                              Eliminar Ítem
+                              <Copy size={14} className="text-primary group-hover/item:scale-110 transition-transform" />
+                              Duplicar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { if(initialData) downloadItemInfo(initialData); setIsMenuOpen(false); }}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-blue-500/10 hover:text-blue-500 rounded-lg transition-all group/item"
+                            >
+                              <Download size={14} className="text-blue-500 group-hover/item:scale-110 transition-transform" />
+                              Descargar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { alert("Compartir próximamente..."); setIsMenuOpen(false); }}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-purple-500/10 hover:text-purple-500 rounded-lg transition-all group/item"
+                            >
+                              <Share2 size={14} className="text-purple-500 group-hover/item:scale-110 transition-transform" />
+                              Compartir
+                            </button>
+                            <div className="h-px bg-border my-1.5 mx-1" />
+                            <button
+                              type="button"
+                              onClick={() => { setIsDeleteConfirmOpen(true); setIsMenuOpen(false); }}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all group/item"
+                            >
+                              <Trash2 size={14} className="group-hover/item:scale-110 transition-transform" />
+                              Eliminar
                             </button>
                           </motion.div>
                         </>
@@ -902,7 +941,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
             </div>
 
             {/* Fixed Footer */}
-            <div className="bg-popover border-t border-border p-6 flex items-center justify-end gap-3 z-[110] shadow-2xl">
+            <div className="bg-popover border-t border-border p-6 flex items-center justify-end gap-3 z-[110] shadow-2xl rounded-b-[1.5rem] sm:rounded-b-[2rem]">
               <Button variant="ghost" type="button" onClick={onClose} className="rounded-2xl px-8 h-12 font-black uppercase text-xs tracking-widest bg-secondary/50 hover:bg-secondary">
                 {isView ? 'Cerrar' : 'Cancelar'}
               </Button>
