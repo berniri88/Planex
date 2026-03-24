@@ -400,10 +400,10 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-popover rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl w-full max-w-3xl flex flex-col h-[90vh] sm:h-[85vh] max-h-[95vh] pointer-events-auto border border-border overflow-hidden relative"
+            className="bg-popover rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl w-full max-w-3xl flex flex-col h-[90vh] sm:h-[85vh] max-h-[95vh] pointer-events-auto border border-border relative"
           >
             {/* Header Tabs Navigation */}
-            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md relative overflow-hidden group/header h-16 sm:h-20 shrink-0">
+            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md relative overflow-visible group/header h-16 sm:h-20 shrink-0">
               {/* Integrated Side Icon Section */}
               <div className="flex items-center h-full min-w-0">
                 <div className="w-16 sm:w-24 h-full bg-primary/10 flex items-center justify-center relative overflow-hidden shrink-0 border-r border-border/50 hidden sm:flex">
@@ -476,7 +476,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-[1.2rem] shadow-2xl overflow-hidden z-[260] p-1.5"
+                            className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-[1.2rem] shadow-2xl overflow-hidden z-[300] p-1.5"
                           >
                             <button
                               type="button"

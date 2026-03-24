@@ -47,9 +47,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isHome = location.pathname === '/';
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/20 selection:text-primary transition-colors duration-500">
+    <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/20 selection:text-primary transition-colors duration-500 pt-[env(safe-area-inset-top)]">
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 h-[72px] bg-background flex items-center justify-between px-6 z-[100] border-b border-border shadow-none transition-colors">
+      <header className="fixed top-[env(safe-area-inset-top)] left-0 right-0 h-[72px] bg-background flex items-center justify-between px-6 z-[100] border-b border-border shadow-none transition-colors">
         <div className="flex items-center gap-4">
           {!isHome && (
             <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="rounded-2xl w-10 h-10 p-0 hover:bg-black/5 dark:hover:bg-white/10 transition-colors border border-border dark:border-none">

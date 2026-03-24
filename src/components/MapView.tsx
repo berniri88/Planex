@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTripStore } from '../store/useTripStore';
 import { ItemFormModal, CATEGORIES } from './ItemFormModal';
 import { type TravelItem } from '../lib/mockData';
-import { Navigation, Edit3, Calendar, Box, ChevronUp, ChevronDown, X, ChevronRight } from 'lucide-react';
+import { Navigation, Edit3, Calendar, Box, ChevronUp, ChevronDown, X, ChevronRight, Maximize2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import gpxParser from 'gpxparser';
@@ -127,7 +127,7 @@ export const MapView = () => {
       }
 
       if (points.length > 0) {
-        points.forEach((p, idx) => {
+        points.forEach((p) => {
           const icon = L.divIcon({
             className: 'custom-map-marker-with-label',
             html: renderToString(
@@ -141,20 +141,27 @@ export const MapView = () => {
                 
                 {/* Detailed Label (CSS Transition instead of motion) */}
                 {selectedMapItemId === item.id && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 z-10 pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <div className="bg-background/95 backdrop-blur-2xl border border-border px-4 py-2.5 rounded-[1.2rem] shadow-2xl min-w-[200px] ring-4 ring-primary/5 flex flex-col items-center text-center">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 z-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedItem(item);
+                        setIsModalOpen(true);
+                      }}
+                      className="bg-background/95 backdrop-blur-2xl border border-border px-4 py-2.5 rounded-[1.2rem] shadow-2xl min-w-[200px] ring-4 ring-primary/5 flex flex-col items-center text-center cursor-pointer group/tooltip hover:border-primary/50 transition-colors pointer-events-auto"
+                    >
                       <div className="flex items-center gap-2 mb-1.5">
                         <Calendar size={12} className="text-primary" />
                         <span className="text-[10px] font-black tracking-widest uppercase">
-                          {idx === 0 ? 'Salida' : 'Llegada'}
+                          {new Date(item.start_time).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-sm font-black italic tracking-tighter leading-none mb-1">
-                        {new Date(idx === 0 ? item.start_time : (item.end_time || item.start_time)).toLocaleDateString([], { day: '2-digit', month: 'short' })} • {new Date(idx === 0 ? item.start_time : (item.end_time || item.start_time)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground font-bold truncate max-w-[220px]">
-                        {(idx === 0 ? item.origin?.address : item.destination?.address) || item.location?.address || 'Sin dirección'}
-                      </p>
+                      <h4 className="text-sm font-black italic tracking-tight">{item.name}</h4>
+                      
+                      <div className="mt-2 text-[8px] font-black uppercase text-primary flex items-center gap-1 opacity-0 group-hover/tooltip:opacity-100 transition-opacity">
+                        <Maximize2 size={10} />
+                        VER DETALLES
+                      </div>
                     </div>
                   </div>
                 )}

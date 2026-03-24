@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Keyboard } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -60,7 +60,7 @@ const CircularClock = ({ value, mode, onChange, onInteractionEnd }: { value: num
 
   return (
     <div 
-        className="relative w-80 h-80 bg-secondary/30 rounded-full mx-auto mt-8 touch-none select-none border border-white/5"
+        className="relative w-64 h-64 sm:w-80 sm:h-80 bg-secondary/30 rounded-full mx-auto touch-none select-none border border-white/5"
         onMouseDown={(e) => {
             setIsDragging(true);
             handleInteraction(e.clientX, e.clientY, e.currentTarget);
@@ -92,7 +92,6 @@ const CircularClock = ({ value, mode, onChange, onInteractionEnd }: { value: num
     >
         <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-primary rounded-full -translate-x-1/2 -translate-y-1/2 z-20" />
 
-        {/* Selection Hand */}
         <div 
             className="absolute left-1/2 bg-primary z-10 transition-all duration-300 pointer-events-none"
             style={{ 
@@ -103,17 +102,16 @@ const CircularClock = ({ value, mode, onChange, onInteractionEnd }: { value: num
                 transform: `translateX(-50%) rotate(${currentPos.angle}deg)`
             }}
         >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-primary rounded-full shadow-2xl ring-4 ring-primary/20 scale-100 transition-transform hover:scale-110">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-full shadow-2xl ring-4 ring-primary/20 scale-100 transition-transform hover:scale-110">
             </div>
         </div>
 
-        {/* Hour Numbers */}
         {isHours ? (
             <>
                 {hoursOuter.map((n) => {
                     const pos = getPos(n, false);
                     return (
-                        <div key={`out-${n}`} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-sm font-bold transition-all z-20 pointer-events-none", value === n ? "text-white scale-125" : "text-muted-foreground/60")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
+                        <div key={`out-${n}`} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-[10px] sm:text-sm font-bold transition-all z-20 pointer-events-none", value === n ? "text-white scale-125" : "text-muted-foreground/60")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
                             {n.toString().padStart(2, '0')}
                         </div>
                     );
@@ -121,7 +119,7 @@ const CircularClock = ({ value, mode, onChange, onInteractionEnd }: { value: num
                 {hoursInner.map((n) => {
                     const pos = getPos(n, true);
                     return (
-                        <div key={`in-${n}`} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-medium transition-all z-20 pointer-events-none", value === n ? "text-white scale-125" : "text-muted-foreground/30")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
+                        <div key={`in-${n}`} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-[9px] sm:text-[11px] font-medium transition-all z-20 pointer-events-none", value === n ? "text-white scale-125" : "text-muted-foreground/30")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
                             {n.toString().padStart(2, '0')}
                         </div>
                     );
@@ -131,7 +129,7 @@ const CircularClock = ({ value, mode, onChange, onInteractionEnd }: { value: num
             minutes.map((n) => {
                 const pos = getPos(n, false);
                 return (
-                    <div key={n} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-sm font-bold transition-all z-20 pointer-events-none", value === n ? "text-white scale-125" : "text-muted-foreground/60")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
+                    <div key={n} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-[10px] sm:text-sm font-bold transition-all z-20 pointer-events-none", value === n ? "text-white scale-125" : "text-muted-foreground/60")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
                         {n.toString().padStart(2, '0')}
                     </div>
                 );
@@ -157,7 +155,6 @@ export const MootsTimePicker = ({ startDate, endDate, onSave, onCancel }: MootsT
   const [activeTab, setActiveTab] = useState<'start' | 'end'>('start');
   const [viewMode, setViewMode] = useState<'calendar' | 'clock'>('calendar');
   const [clockPart, setClockPart] = useState<'hours' | 'minutes'>('hours');
-  
   const [baseMonth, setBaseMonth] = useState(() => new Date(internalStart));
 
   const getMonthDays = (base: Date, offset: number) => {
@@ -196,7 +193,6 @@ export const MootsTimePicker = ({ startDate, endDate, onSave, onCancel }: MootsT
       } else {
           d.setMinutes(val);
       }
-      
       if (activeTab === 'start') setInternalStart(d.toISOString());
       else setInternalEnd(d.toISOString());
   };
@@ -221,153 +217,147 @@ export const MootsTimePicker = ({ startDate, endDate, onSave, onCancel }: MootsT
   };
 
   return (
-    <div className="flex flex-col h-full bg-background max-h-[90vh]">
-      {/* Cards Header */}
-      <div className="flex bg-primary/5 p-4 gap-4 border-b border-border">
-          <button 
-            type="button"
-            onClick={() => { setActiveTab('start'); setViewMode('calendar'); }}
-            className={cn(
-                "flex-1 p-6 rounded-[2rem] border-2 transition-all text-left",
-                activeTab === 'start' ? "bg-background border-primary shadow-xl" : "bg-transparent border-transparent opacity-60"
-            )}
-          >
-              <h4 className="text-xl font-black italic tracking-tighter mb-4">Inicio</h4>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
-                {currentTimes.start.toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </p>
-              <button 
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setViewMode('clock'); setClockPart('hours'); setActiveTab('start'); }}
-                className="text-4xl font-black tracking-tighter hover:text-primary transition-colors mt-2"
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xl" onClick={onCancel} />
+      
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="relative bg-background rounded-[2.5rem] shadow-2xl w-full max-w-xl flex flex-col max-h-[90vh] border border-border overflow-hidden"
+      >
+        <div className="flex bg-primary/5 p-4 sm:p-6 gap-4 border-b border-border items-center justify-between">
+           <div className="flex-1 grid grid-cols-2 gap-3">
+              <div 
+                className={cn(
+                  "p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                  activeTab === 'start' ? "bg-background border-primary shadow-sm" : "bg-secondary/30 border-transparent"
+                )} 
+                onClick={() => { setActiveTab('start'); setViewMode('calendar'); }}
               >
-                {currentTimes.start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })}
-              </button>
-          </button>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Inicio</h4>
+                  <p className="text-sm font-black truncate">{currentTimes.start.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
+                  <button 
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setViewMode('clock'); setClockPart('hours'); setActiveTab('start'); }}
+                    className="text-2xl font-black mt-1 text-primary"
+                  >
+                    {currentTimes.start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                  </button>
+              </div>
 
-          <button 
-            type="button"
-            onClick={() => { setActiveTab('end'); setViewMode('calendar'); }}
-            className={cn(
-                "flex-1 p-6 rounded-[2rem] border-2 transition-all text-left",
-                activeTab === 'end' ? "bg-background border-primary shadow-xl" : "bg-transparent border-transparent opacity-60"
-            )}
-          >
-              <h4 className="text-xl font-black italic tracking-tighter mb-4">Fin</h4>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
-                {currentTimes.end.toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </p>
-              <button 
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setViewMode('clock'); setClockPart('hours'); setActiveTab('end'); }}
-                className="text-4xl font-black tracking-tighter hover:text-primary transition-colors mt-2"
+              <div 
+                className={cn(
+                  "p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                  activeTab === 'end' ? "bg-background border-primary shadow-sm" : "bg-secondary/30 border-transparent"
+                )} 
+                onClick={() => { setActiveTab('end'); setViewMode('calendar'); }}
               >
-                {currentTimes.end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })}
-              </button>
-          </button>
-      </div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Fin</h4>
+                  <p className="text-sm font-black truncate">{currentTimes.end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
+                  <button 
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setViewMode('clock'); setClockPart('hours'); setActiveTab('end'); }}
+                    className="text-2xl font-black mt-1 text-primary"
+                  >
+                    {currentTimes.end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                  </button>
+              </div>
+           </div>
+           <Button variant="ghost" size="sm" onClick={onCancel} className="w-10 h-10 p-0 rounded-full shrink-0">
+              <X size={20} />
+           </Button>
+        </div>
 
-      <div className="flex-1 overflow-y-auto p-8 bg-card">
-        <AnimatePresence mode="wait">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+          <AnimatePresence mode="wait">
             {viewMode === 'calendar' ? (
-                <motion.div 
-                    key="calendar"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="space-y-12"
-                >
-                    <div className="flex items-center justify-between px-4">
-                        <Button type="button" variant="ghost" onClick={() => setBaseMonth(new Date(baseMonth.getFullYear(), baseMonth.getMonth() - 1))} className="w-10 h-10 p-0 rounded-2xl bg-secondary">
-                            <ChevronLeft size={20} />
-                        </Button>
-                        <Button type="button" variant="ghost" onClick={() => setBaseMonth(new Date(baseMonth.getFullYear(), baseMonth.getMonth() + 1))} className="w-10 h-10 p-0 rounded-2xl bg-secondary">
-                            <ChevronRight size={20} />
-                        </Button>
-                    </div>
+              <motion.div 
+                key="calendar"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-8"
+              >
+                <div className="flex items-center justify-between px-2">
+                  <Button variant="ghost" onClick={() => setBaseMonth(new Date(baseMonth.getFullYear(), baseMonth.getMonth() - 1))} className="w-10 h-10 p-0 rounded-xl bg-secondary">
+                    <ChevronLeft size={20} />
+                  </Button>
+                  <Button variant="ghost" onClick={() => setBaseMonth(new Date(baseMonth.getFullYear(), baseMonth.getMonth() + 1))} className="w-10 h-10 p-0 rounded-xl bg-secondary">
+                    <ChevronRight size={20} />
+                  </Button>
+                </div>
 
-                    <div className="flex flex-col lg:flex-row gap-16 px-4">
-                        {months.map((m, mi) => (
-                            <div key={mi} className="flex-1 space-y-8">
-                                <h3 className="text-lg font-black tracking-widest text-center">{m.label}</h3>
-                                <div className="grid grid-cols-7 gap-y-1">
-                                    {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'].map(d => ( // Spanish weekdays
-                                        <div key={d} className="text-[10px] font-black uppercase text-muted-foreground/40 text-center py-2">{d}</div>
-                                    ))}
-                                    {m.days.map((date, di) => (
-                                        <div key={di} className="relative aspect-square flex items-center justify-center">
-                                            {date && isRange(date) && (
-                                                <div className="absolute inset-x-0 h-10 bg-primary/10" />
-                                            )}
-                                            {date && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDateClick(date)}
-                                                    className={cn(
-                                                        "relative z-10 w-10 h-10 rounded-xl text-sm font-black transition-all",
-                                                        isSelected(date) ? "bg-primary text-white shadow-lg scale-110" : "hover:bg-secondary",
-                                                        date.toDateString() === new Date().toDateString() && !isSelected(date) && "text-primary border border-primary/20"
-                                                    )}
-                                                >
-                                                    {date.getDate()}
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {months.map((m, mi) => (
+                    <div key={mi} className={cn("space-y-4", mi > 0 && "hidden md:block")}>
+                      <h3 className="text-xs font-black tracking-widest text-center uppercase">{m.label}</h3>
+                      <div className="grid grid-cols-7 gap-1">
+                        {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                          <div key={i} className="text-[9px] font-black text-muted-foreground/40 text-center py-2">{d}</div>
                         ))}
+                        {m.days.map((date, di) => (
+                          <div key={di} className="relative aspect-square flex items-center justify-center">
+                            {date && isRange(date) && <div className="absolute inset-x-0 h-8 bg-primary/10" />}
+                            {date && (
+                              <button
+                                type="button"
+                                onClick={() => handleDateClick(date)}
+                                className={cn(
+                                  "relative z-10 w-8 h-8 rounded-lg text-xs font-black transition-all",
+                                  isSelected(date) ? "bg-primary text-white shadow-md scale-110" : "hover:bg-secondary",
+                                  date.toDateString() === new Date().toDateString() && !isSelected(date) && "text-primary ring-1 ring-primary/20"
+                                )}
+                              >
+                                {date.getDate()}
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                </motion.div>
+                  ))}
+                </div>
+              </motion.div>
             ) : (
-                <motion.div 
-                    key="clock"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="flex flex-col items-center justify-center h-full max-w-sm mx-auto"
-                >
-                    <div className="bg-secondary/40 p-12 rounded-[3.5rem] w-full border border-border/50">
-                        <div className="flex items-center justify-center gap-4 mb-4">
-                             <button type="button" onClick={() => setClockPart('hours')} className={cn("text-6xl font-black transition-all", clockPart === 'hours' ? "text-primary" : "opacity-20 text-foreground")}>
-                                {currentTimes[activeTab].getHours().toString().padStart(2, '0')}
-                             </button>
-                             <span className="text-6xl font-black opacity-10">:</span>
-                             <button type="button" onClick={() => setClockPart('minutes')} className={cn("text-6xl font-black transition-all", clockPart === 'minutes' ? "text-primary" : "opacity-20 text-foreground")}>
-                                {currentTimes[activeTab].getMinutes().toString().padStart(2, '0')}
-                             </button>
-                        </div>
-                        
-                        <CircularClock 
-                            mode={clockPart} 
-                            value={clockPart === 'hours' ? currentTimes[activeTab].getHours() : currentTimes[activeTab].getMinutes()} 
-                            onChange={handleTimeUpdate} 
-                            onInteractionEnd={() => {
-                                if (clockPart === 'hours') setClockPart('minutes');
-                            }}
-                        />
+              <motion.div 
+                key="clock"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="flex flex-col items-center justify-center py-4"
+              >
+                <div className="flex items-center justify-center gap-4 mb-8">
+                  <button type="button" onClick={() => setClockPart('hours')} className={cn("text-6xl font-black transition-all", clockPart === 'hours' ? "text-primary scale-110" : "opacity-20")}>
+                    {currentTimes[activeTab].getHours().toString().padStart(2, '0')}
+                  </button>
+                  <span className="text-5xl font-black opacity-10">:</span>
+                  <button type="button" onClick={() => setClockPart('minutes')} className={cn("text-6xl font-black transition-all", clockPart === 'minutes' ? "text-primary scale-110" : "opacity-20")}>
+                    {currentTimes[activeTab].getMinutes().toString().padStart(2, '0')}
+                  </button>
+                </div>
 
-                        <div className="mt-12 flex justify-between items-center text-muted-foreground">
-                             <Button type="button" variant="ghost" size="sm" className="rounded-xl"><Keyboard size={20} /></Button>
-                             <div className="flex gap-4">
-                                <button type="button" onClick={() => setViewMode('calendar')} className="text-sm font-black uppercase tracking-widest hover:text-primary">CANCELAR</button>
-                                <button type="button" onClick={() => setViewMode('calendar')} className="text-sm font-black uppercase tracking-widest text-primary">OK</button>
-                             </div>
-                        </div>
-                    </div>
-                </motion.div>
+                <CircularClock 
+                  mode={clockPart} 
+                  value={clockPart === 'hours' ? currentTimes[activeTab].getHours() : currentTimes[activeTab].getMinutes()} 
+                  onChange={handleTimeUpdate} 
+                  onInteractionEnd={() => { if (clockPart === 'hours') setClockPart('minutes'); }}
+                />
+
+                <div className="mt-8 flex gap-4">
+                  <Button variant="secondary" onClick={() => setViewMode('calendar')} className="rounded-xl font-bold px-6">CALENDARIO</Button>
+                  <Button onClick={() => setViewMode('calendar')} className="rounded-xl font-bold px-8">OK</Button>
+                </div>
+              </motion.div>
             )}
-        </AnimatePresence>
-      </div>
+          </AnimatePresence>
+        </div>
 
-      <div className="p-6 border-t border-border flex items-center justify-between bg-card">
-          <Button type="button" variant="ghost" onClick={onCancel} className="h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-muted-foreground">
-            CANCELAR
-          </Button>
-          <Button type="button" onClick={() => onSave(internalStart, internalEnd)} className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest shadow-xl">
-            LISTO
-          </Button>
-      </div>
+        <div className="p-6 border-t border-border flex items-center justify-between bg-secondary/20">
+          <Button variant="ghost" onClick={onCancel} className="font-black uppercase tracking-widest text-muted-foreground">CANCELAR</Button>
+          <Button onClick={() => onSave(internalStart, internalEnd)} className="px-10 rounded-2xl font-black uppercase tracking-widest shadow-xl">LISTO</Button>
+        </div>
+      </motion.div>
     </div>
   );
 };
