@@ -13,7 +13,8 @@ import {
   Clock,
   Info,
   Calendar as CalendarIcon,
-  Paperclip
+  Paperclip,
+  MoreHorizontal
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useTripStore } from '../store/useTripStore';
@@ -164,6 +165,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
 
   const [activeTab, setActiveTab] = useState<'info' | 'costos' | 'adjuntos' | 'gpx'>('info');
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Form State
   const [type, setType] = useState<TravelItemCategory>('vuelo');
@@ -398,70 +400,97 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-popover rounded-[2rem] shadow-2xl w-full max-w-3xl flex flex-col h-[85vh] max-h-[90vh] pointer-events-auto border border-border overflow-hidden relative"
+            className="bg-popover rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl w-full max-w-3xl flex flex-col h-[90vh] sm:h-[85vh] max-h-[95vh] pointer-events-auto border border-border overflow-hidden relative"
           >
             {/* Header Tabs Navigation */}
-            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md relative overflow-hidden group/header h-20 shrink-0">
+            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md relative overflow-hidden group/header h-16 sm:h-20 shrink-0">
               {/* Integrated Side Icon Section */}
-              <div className="flex items-center h-full">
-                <div className="w-24 h-full bg-primary/10 flex items-center justify-center relative overflow-hidden shrink-0 border-r border-border/50">
+              <div className="flex items-center h-full min-w-0">
+                <div className="w-16 sm:w-24 h-full bg-primary/10 flex items-center justify-center relative overflow-hidden shrink-0 border-r border-border/50 hidden sm:flex">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
                   <SelectedIcon size={48} strokeWidth={1.5} className="text-primary relative z-10 group-hover/header:scale-110 transition-transform duration-500" />
                   {/* Faint Large Background Icon */}
                   <SelectedIcon size={120} strokeWidth={0.5} className="absolute -right-8 -bottom-8 text-primary opacity-[0.08] rotate-12 group-hover/header:rotate-[-12deg] transition-all duration-1000" />
                 </div>
 
-                <div className="flex bg-secondary/50 p-1.5 rounded-2xl  border-border/50 backdrop-blur-sm ml-6">
+                <div className="flex overflow-x-auto no-scrollbar bg-secondary/50 p-1.5 rounded-2xl border-border/50 backdrop-blur-sm mx-2 sm:ml-6 shrink-0 max-w-full">
                   <Button 
                     variant="ghost" 
                     onClick={() => setActiveTab('info')}
-                    className={cn("text-xs font-black uppercase tracking-widest rounded-xl px-4 py-2 transition-all flex items-center gap-2", activeTab === 'info' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
+                    className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'info' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
                   >
-                    <Info size={14} />
+                    <Info size={14} className="shrink-0" />
                     Información
                   </Button>
                   <Button 
                     variant="ghost" 
                     onClick={() => setActiveTab('costos')}
-                    className={cn("text-xs font-black uppercase tracking-widest rounded-xl px-4 py-2 transition-all flex items-center gap-2", activeTab === 'costos' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
+                    className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'costos' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
                   >
-                    <CreditCard size={14} />
+                    <CreditCard size={14} className="shrink-0" />
                     Costo
                   </Button>
                   <Button 
                     variant="ghost" 
                     onClick={() => setActiveTab('adjuntos')}
-                    className={cn("text-xs font-black uppercase tracking-widest rounded-xl px-4 py-2 transition-all flex items-center gap-2", activeTab === 'adjuntos' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
+                    className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'adjuntos' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
                   >
-                    <Paperclip size={14} />
+                    <Paperclip size={14} className="shrink-0" />
                     Adjuntos
-                    {attachments.length > 0 && <span className="bg-primary text-white text-[10px] px-2 py-0.5 rounded-full">{attachments.length}</span>}
+                    {attachments.length > 0 && <span className="bg-primary text-white text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full">{attachments.length}</span>}
                   </Button>
                   {type === 'actividad' && (
                     <Button 
                     variant="ghost" 
                     onClick={() => setActiveTab('gpx')}
-                    className={cn("text-xs font-black uppercase tracking-widest rounded-xl px-4 py-2 transition-all flex items-center gap-2", activeTab === 'gpx' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
+                    className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'gpx' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
                   >
-                    <Navigation size={14} />
+                    <Navigation size={14} className="shrink-0" />
                     Track GPX
-                    {gpxUrl && <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />}
+                    {gpxUrl && <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />}
                   </Button>
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center gap-2 pr-6 relative z-10">
+              <div className="flex items-center gap-1 sm:gap-2 pr-2 sm:pr-6 relative z-10 shrink-0">
                 {mode === 'edit' && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setIsDeleteConfirmOpen(true)} 
-                    className="w-10 h-10 p-0 rounded-2xl bg-secondary border border-border hover:bg-red-500 hover:text-white transition-all group/delete shadow-sm"
-                    title="Eliminar ítem"
-                  >
-                    <Trash2 size={18} className="group-hover/delete:scale-110 transition-transform" />
-                  </Button>
+                  <div className="relative">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setIsMenuOpen(!isMenuOpen)} 
+                      className={cn(
+                        "w-10 h-10 p-0 rounded-2xl border border-border transition-all shadow-sm",
+                        isMenuOpen ? "bg-primary text-white border-primary" : "bg-secondary hover:bg-primary hover:text-white"
+                      )}
+                      title="Opciones"
+                    >
+                      <MoreHorizontal size={18} />
+                    </Button>
+                    <AnimatePresence>
+                      {isMenuOpen && (
+                        <>
+                          <div className="fixed inset-0 z-[250]" onClick={() => setIsMenuOpen(false)} />
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-[1.2rem] shadow-2xl overflow-hidden z-[260] p-1.5"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => { setIsDeleteConfirmOpen(true); setIsMenuOpen(false); }}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all group/delete"
+                            >
+                              <Trash2 size={14} className="group-hover/delete:scale-110 transition-transform" />
+                              Eliminar Ítem
+                            </button>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 )}
                 <Button variant="ghost" size="sm" onClick={onClose} className="w-10 h-10 p-0 rounded-2xl bg-secondary border border-border hover:bg-primary hover:text-white transition-colors">
                   <X size={20} />
@@ -483,8 +512,8 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                 </div>
               )}
               {activeTab === 'info' ? (
-                <form onSubmit={handleSubmit} className="p-8 space-y-10">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6 sm:space-y-10 pb-24">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     {/* Category Selection */}
                     <div className="space-y-3">
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Tipo de Ítem</span>
@@ -711,9 +740,9 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                   </div>
                 </form>
               ) : activeTab === 'costos' ? (
-                <div className="p-8 space-y-10">
+                <div className="p-4 sm:p-8 space-y-6 sm:space-y-10 pb-24">
                   {/* Section: COSTO */}
-                  <div className="space-y-8 p-8 bg-secondary/40 rounded-[2.5rem] border-2 border-border/50 shadow-inner">
+                  <div className="space-y-6 sm:space-y-8 p-6 sm:p-8 bg-secondary/40 rounded-[1.5rem] sm:rounded-[2.5rem] border-2 border-border/50 shadow-inner">
                     <div className="flex items-center gap-4 ml-1">
                       <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
                         <CreditCard size={20} />

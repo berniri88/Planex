@@ -103,10 +103,7 @@ const CircularClock = ({ value, mode, onChange, onInteractionEnd }: { value: num
                 transform: `translateX(-50%) rotate(${currentPos.angle}deg)`
             }}
         >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-2xl ring-4 ring-primary/20 scale-100 transition-transform hover:scale-110">
-                <div style={{ transform: `rotate(-${currentPos.angle}deg)` }} className="text-sm font-black text-white">
-                    {value.toString().padStart(2, '0')}
-                </div>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-primary rounded-full shadow-2xl ring-4 ring-primary/20 scale-100 transition-transform hover:scale-110">
             </div>
         </div>
 
@@ -116,7 +113,7 @@ const CircularClock = ({ value, mode, onChange, onInteractionEnd }: { value: num
                 {hoursOuter.map((n) => {
                     const pos = getPos(n, false);
                     return (
-                        <div key={`out-${n}`} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-sm font-bold transition-all", value === n ? "text-primary scale-125" : "text-muted-foreground/60")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
+                        <div key={`out-${n}`} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-sm font-bold transition-all z-20 pointer-events-none", value === n ? "text-white scale-125" : "text-muted-foreground/60")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
                             {n.toString().padStart(2, '0')}
                         </div>
                     );
@@ -124,7 +121,7 @@ const CircularClock = ({ value, mode, onChange, onInteractionEnd }: { value: num
                 {hoursInner.map((n) => {
                     const pos = getPos(n, true);
                     return (
-                        <div key={`in-${n}`} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-medium transition-all", value === n ? "text-primary scale-125" : "text-muted-foreground/30")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
+                        <div key={`in-${n}`} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-medium transition-all z-20 pointer-events-none", value === n ? "text-white scale-125" : "text-muted-foreground/30")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
                             {n.toString().padStart(2, '0')}
                         </div>
                     );
@@ -134,7 +131,7 @@ const CircularClock = ({ value, mode, onChange, onInteractionEnd }: { value: num
             minutes.map((n) => {
                 const pos = getPos(n, false);
                 return (
-                    <div key={n} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-sm font-bold transition-all", value === n ? "text-primary scale-125" : "text-muted-foreground/60")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
+                    <div key={n} className={cn("absolute -translate-x-1/2 -translate-y-1/2 text-sm font-bold transition-all z-20 pointer-events-none", value === n ? "text-white scale-125" : "text-muted-foreground/60")} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
                         {n.toString().padStart(2, '0')}
                     </div>
                 );

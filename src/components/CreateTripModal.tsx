@@ -68,20 +68,20 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="relative w-full max-w-lg bg-background rounded-[2.5rem] shadow-2xl overflow-hidden border border-border"
+          className="relative w-full max-w-lg bg-background rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden border border-border max-h-[90vh] flex flex-col"
         >
-          <div className="p-8 space-y-8">
-            <div className="flex items-center justify-between">
+          <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar flex-1">
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
               <div>
-                <h2 className="text-3xl font-black tracking-tighter italic">Nueva Aventura</h2>
+                <h2 className="text-2xl sm:text-3xl font-black tracking-tighter italic">Nueva Aventura</h2>
                 <p className="text-muted-foreground font-medium uppercase text-[10px] tracking-[0.2em] mt-1">Empieza a planear tu viaje</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={onClose} className="rounded-2xl w-10 h-10 p-0 text-muted-foreground hover:bg-secondary">
+              <Button variant="ghost" size="sm" onClick={onClose} className="rounded-2xl w-10 h-10 p-0 text-muted-foreground hover:bg-secondary shrink-0">
                 <X size={20} />
               </Button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 flex flex-col min-h-full">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Nombre del Viaje</label>
@@ -108,7 +108,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Fecha Inicio</label>
                     <div className="relative">
@@ -118,7 +118,7 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                         type="date"
                         value={formData.startDate}
                         onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                        className="w-full h-14 pl-14 pr-6 bg-secondary rounded-2xl border-none focus:ring-2 focus:ring-primary/20 transition-all font-bold appearance-none no-scrollbar"
+                        className="w-full h-14 pl-14 pr-4 bg-secondary rounded-2xl border-none focus:ring-2 focus:ring-primary/20 transition-all font-bold appearance-none no-scrollbar text-sm sm:text-base"
                       />
                     </div>
                   </div>
@@ -131,13 +131,13 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                         type="date"
                         value={formData.endDate}
                         onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                        className="w-full h-14 pl-14 pr-6 bg-secondary rounded-2xl border-none focus:ring-2 focus:ring-primary/20 transition-all font-bold appearance-none no-scrollbar"
+                        className="w-full h-14 pl-14 pr-4 bg-secondary rounded-2xl border-none focus:ring-2 focus:ring-primary/20 transition-all font-bold appearance-none no-scrollbar text-sm sm:text-base"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-2">
                   <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Icono</label>
                     <div className="flex gap-2">
@@ -172,11 +172,11 @@ export const CreateTripModal = ({ isOpen, onClose }: CreateTripModalProps) => {
                 </div>
               </div>
 
-              <div className="pt-4 flex gap-4">
-                <Button variant="ghost" size="lg" onClick={onClose} className="flex-1 rounded-2xl h-16 h-16 font-black bg-secondary">
+              <div className="pt-4 flex flex-col sm:flex-row gap-3 sm:gap-4 shrink-0 mt-auto">
+                <Button variant="ghost" size="lg" onClick={onClose} className="flex-1 rounded-2xl h-14 sm:h-16 font-black bg-secondary">
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={isLoading} className="flex-1 rounded-2xl h-16 h-16 shadow-xl shadow-primary/25 disabled:opacity-50">
+                <Button type="submit" disabled={isLoading} className="flex-1 rounded-2xl h-14 sm:h-16 shadow-xl shadow-primary/25 disabled:opacity-50">
                   {isLoading ? <Loader2 className="animate-spin" /> : 'Crear Viaje'}
                 </Button>
               </div>

@@ -33,7 +33,7 @@ export const DeleteConfirmModal = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-popover rounded-[2rem] shadow-2xl w-full max-w-md p-8 border border-border relative z-10"
+            className="bg-popover rounded-[2rem] shadow-2xl w-full max-w-md p-6 sm:p-8 border border-border relative z-10"
           >
             <button 
               onClick={onClose}

@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GitBranch, Plus, Check, ChevronDown, GitMerge, X } from 'lucide-react';
+import { GitBranch, Plus, Check, ChevronDown, GitMerge, X, GitCompare } from 'lucide-react';
 import { useTripStore } from '../store/useTripStore';
 import { Button } from './ui/Button';
 import { cn } from '../lib/utils';
 import { hapticFeedback } from '../lib/haptics';
 
-export const BranchManager = () => {
+interface BranchManagerProps {
+  onCompareClick?: () => void;
+}
+
+export const BranchManager = ({ onCompareClick }: BranchManagerProps) => {
   const { branches, activeBranchId, setActiveBranch, createBranch } = useTripStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -79,7 +83,17 @@ export const BranchManager = () => {
                     );
                   })}
 
-                  <div className="p-2 pt-4">
+                  <div className="p-2 pt-4 space-y-2">
+                    {onCompareClick && (
+                      <Button 
+                        variant="ghost"
+                        onClick={() => { onCompareClick(); setIsOpen(false); }}
+                        className="w-full h-11 rounded-2xl border border-primary/20 text-primary hover:bg-primary/10 transition-all duration-300"
+                      >
+                        <GitCompare size={16} className="mr-2" />
+                        Compare Branches
+                      </Button>
+                    )}
                     <Button 
                       onClick={() => setIsCreating(true)}
                       className="w-full h-11 rounded-2xl bg-primary/5 text-primary border-primary/10 hover:bg-primary hover:text-white transition-all duration-500"

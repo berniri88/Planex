@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTripStore } from '../store/useTripStore';
 import { ItemFormModal, CATEGORIES } from './ItemFormModal';
 import { type TravelItem } from '../lib/mockData';
-import { Navigation, Edit3, Calendar, Box, ChevronUp, ChevronDown } from 'lucide-react';
+import { Navigation, Edit3, Calendar, Box, ChevronUp, ChevronDown, X, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import gpxParser from 'gpxparser';
@@ -141,8 +141,8 @@ export const MapView = () => {
                 
                 {/* Detailed Label (CSS Transition instead of motion) */}
                 {selectedMapItemId === item.id && (
-                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 z-10 pointer-events-none animate-in fade-in slide-in-from-left-2 duration-300">
-                    <div className="bg-background/95 backdrop-blur-2xl border border-border px-4 py-2.5 rounded-[1.2rem] shadow-2xl min-w-[200px] ring-4 ring-primary/5">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 z-10 pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="bg-background/95 backdrop-blur-2xl border border-border px-4 py-2.5 rounded-[1.2rem] shadow-2xl min-w-[200px] ring-4 ring-primary/5 flex flex-col items-center text-center">
                       <div className="flex items-center gap-2 mb-1.5">
                         <Calendar size={12} className="text-primary" />
                         <span className="text-[10px] font-black tracking-widest uppercase">
@@ -235,13 +235,27 @@ export const MapView = () => {
   const lastHoveredItem = items.find(i => i.id === hoveredItemId) || (items.length > 0 ? items[0] : null);
 
   return (
-    <div className="relative w-full h-[calc(100vh-140px)] rounded-[3rem] overflow-hidden border-2 border-border shadow-2xl bg-secondary/20 flex group/map">
-      {/* Collapsible Sidebar */}
-      <motion.div
-        animate={{ width: isListCollapsed ? '80px' : '320px' }}
-        className="h-full bg-popover/90 backdrop-blur-2xl border-r border-border flex flex-col z-20 overflow-hidden relative"
+    <div className="relative w-full h-[calc(100vh-140px)] rounded-[2rem] sm:rounded-[3rem] overflow-hidden border-2 border-border shadow-2xl bg-secondary/20 flex group/map">
+      
+      {/* Mobile Map Floating Toggle */}
+      <button 
+        onClick={() => setIsListCollapsed(false)}
+        className={cn(
+           "md:hidden absolute top-1/2 -translate-y-1/2 left-0 z-30 w-8 h-16 rounded-r-2xl border-y border-r border-border bg-popover/90 backdrop-blur-md flex items-center justify-center shadow-2xl text-primary transition-transform active:scale-95",
+           !isListCollapsed && "-translate-x-full opacity-0"
+        )}
       >
-        <div className="p-6 border-b border-border bg-secondary/30 flex items-center justify-between shrink-0">
+        <ChevronRight size={24} />
+      </button>
+
+      {/* Collapsible Sidebar */}
+      <div
+        className={cn(
+          "h-full bg-popover/90 backdrop-blur-2xl border-r border-border flex flex-col z-40 overflow-hidden absolute md:relative left-0 top-0 transition-all duration-300 shadow-2xl md:shadow-none",
+          isListCollapsed ? "-translate-x-full md:translate-x-0 md:w-[80px]" : "translate-x-0 w-[85%] sm:w-[320px] md:w-[320px]"
+        )}
+      >
+        <div className="p-4 sm:p-6 border-b border-border bg-secondary/30 flex items-center justify-between shrink-0">
            {!isListCollapsed && (
              <div className="flex items-center gap-3">
                 <Box size={16} className="text-primary" />
@@ -255,7 +269,8 @@ export const MapView = () => {
                isListCollapsed && "mx-auto"
              )}
            >
-              {isListCollapsed ? <ChevronUp className="rotate-90" size={16} /> : <ChevronDown className="rotate-90" size={16} />}
+              {isListCollapsed ? <ChevronUp className="rotate-90 hidden md:block" size={16} /> : <ChevronDown className="rotate-90 hidden md:block" size={16} />}
+              <X className="block md:hidden" size={16} />
            </button>
         </div>
 
@@ -272,6 +287,7 @@ export const MapView = () => {
                 onMouseLeave={() => setHoveredItemId(null)}
                 onClick={() => {
                   setSelectedMapItemId(item.id === selectedMapItemId ? null : item.id);
+                  if (window.innerWidth < 768) setIsListCollapsed(true);
                   if (!mapRef.current) return;
                   const bounds = L.latLngBounds([]);
                   if (item.origin?.lat) bounds.extend([item.origin.lat as number, item.origin.lng as number]);
@@ -320,16 +336,16 @@ export const MapView = () => {
             );
           })}
         </div>
-      </motion.div>
+      </div>
 
       {/* Map Area */}
       <div className="flex-1 relative h-full">
         <div ref={mapContainerRef} className="z-0 w-full h-full" />
         
         {/* HUD Headers (Stable on Map) */}
-        <div className="absolute top-8 left-8 z-10 pointer-events-none">
-          <h4 className="text-3xl font-black tracking-tighter italic text-foreground drop-shadow-sm select-none">Planex Atlas</h4>
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground mt-2">Interactive Itinerary Tool</p>
+        <div className="absolute bottom-8 left-8 sm:top-8 sm:bottom-auto z-10 pointer-events-none">
+          <h4 className="text-2xl sm:text-3xl font-black tracking-tighter italic text-foreground drop-shadow-sm select-none">Planex Atlas</h4>
+          <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground mt-1 sm:mt-2">Interactive Itinerary Tool</p>
         </div>
 
         {/* Mouse-Following Tooltip HUD (Rich Content) */}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Plane, Hotel, Trash2, Utensils, Map, Wind, GitCompare, Calendar,
+  Plane, Hotel, Trash2, Utensils, Map, Wind, Calendar,
   Bus as BusIcon, Train, Car, Navigation, Box, Paperclip, MapPin, Banknote, CheckCircle2, AlertCircle, HelpCircle, Clock,
   MoreHorizontal, Copy, Download, Share2
 } from 'lucide-react';
@@ -111,41 +111,42 @@ const ItineraryItemCard = ({
        
        <div className="relative z-20 space-y-4">
           {/* Header Row: Icon, Title/Dates, Status */}
-          <div className="flex items-start gap-4 justify-between">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto flex-1 min-w-0">
               <motion.div 
                 variants={iconVariants}
-                className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center text-primary/80 border border-primary/10 shrink-0 shadow-sm"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/5 flex items-center justify-center text-primary/80 border border-primary/10 shrink-0 shadow-sm mt-1 sm:mt-0"
               >
-                <Icon size={22} />
+                <Icon size={20} className="sm:w-[22px] sm:h-[22px]" />
               </motion.div>
-              <div className="flex flex-col min-w-0">
-                <h3 className="text-xl font-black text-foreground tracking-tight group-hover:text-primary transition-colors duration-300 truncate leading-tight">
+              <div className="flex flex-col min-w-0 flex-1">
+                <h3 className="text-lg sm:text-xl font-black text-foreground tracking-tight group-hover:text-primary transition-colors duration-300 truncate leading-tight">
                   {item.name}
                 </h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] font-black text-muted-foreground/60 tracking-[0.05em] uppercase flex items-center gap-1.5">
-                    <Calendar size={11} strokeWidth={3} className="text-primary/40" />
-                    {formatDate(item.start_time)}
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1 sm:mt-0.5">
+                  <span className="text-[9px] sm:text-[10px] font-black text-muted-foreground/60 tracking-[0.05em] uppercase flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                    <Calendar size={11} strokeWidth={3} className="text-primary/40 shrink-0" />
+                    <span>{formatDate(item.start_time)}</span>
                     {item.end_time && (
-                      <>
-                        <span className="opacity-30 mx-0.5">/</span>
-                        {formatDate(item.end_time)}
-                      </>
+                      <span className="flex items-center">
+                        <span className="opacity-30 mx-0.5 sm:mx-1">/</span>
+                        <span>{formatDate(item.end_time)}</span>
+                      </span>
                     )}
                     {(item.attachments && item.attachments.length > 0) && (
-                      <Paperclip size={10} className="text-primary/60 ml-1 shrink-0" />
+                      <Paperclip size={10} className="text-primary/60 ml-0.5 sm:ml-1 shrink-0" />
                     )}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2 shrink-0 -mt-0.5">
+            
+            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 sm:gap-2 shrink-0 w-full sm:w-auto border-t sm:border-t-0 border-border/40 pt-3 sm:pt-0 -mt-1 sm:-mt-0.5">
               <div className="relative flex items-center justify-end group/actions">
                 <StatusBadge status={item.status} />
                 
                 {/* Action Menu Button Overlay */}
-                <div className="absolute -right-1 top-1/2 -translate-y-1/2">
+                <div className="absolute -right-1 top-1/2 -translate-y-1/2 hidden sm:block">
                   <div className="relative">
                     <Button 
                       variant="ghost" 
@@ -292,21 +293,19 @@ export const Itinerary = () => {
       className="max-w-4xl mx-auto py-10 px-6 h-full overflow-y-auto no-scrollbar pb-32"
     >
       <header className="mb-12">
-        <div className="flex items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <BranchManager />
-            <Button 
-                onClick={() => setIsCompareOpen(true)}
-                className="flex items-center gap-2 px-5 h-12 rounded-2xl border-border shadow-none group hover:bg-primary/5 transition-all text-primary bg-white border-2"
-            >
-              <GitCompare size={16} className="group-hover:rotate-12 transition-transform" />
-              <span className="text-xs font-black uppercase tracking-widest">Compare</span>
-            </Button>
-          </div>
+        <div className="flex items-center justify-between gap-4">
+          <BranchManager onCompareClick={() => setIsCompareOpen(true)} />
           
           <Button 
             onClick={() => { setSelectedItem(undefined); setModalMode('create'); setIsModalOpen(true); }}
-            className="flex items-center gap-3 px-6 h-12 rounded-2xl bg-primary text-primary-foreground font-black text-sm uppercase tracking-widest hover:brightness-110 shadow-xl shadow-primary/20 transition-all"
+            className="flex sm:hidden fixed bottom-6 right-6 z-50 items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground font-black shadow-2xl shadow-primary/40 transition-all active:scale-95"
+          >
+             <span className="text-3xl font-light leading-none mb-1">+</span>
+          </Button>
+
+          <Button 
+            onClick={() => { setSelectedItem(undefined); setModalMode('create'); setIsModalOpen(true); }}
+            className="hidden sm:flex items-center gap-3 px-6 h-12 rounded-2xl bg-primary text-primary-foreground font-black text-sm uppercase tracking-widest hover:brightness-110 shadow-xl shadow-primary/20 transition-all shrink-0"
           >
              <span className="text-2xl font-light leading-none">+</span>
              Add Item
@@ -316,7 +315,7 @@ export const Itinerary = () => {
 
       <div className="space-y-6 relative">
         {/* Connection Line */}
-        <div className="absolute left-8 top-12 bottom-12 w-1 bg-gradient-to-b from-primary/30 via-primary/5 to-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.1)]" />
+        <div className="absolute left-4 md:left-8 top-12 bottom-12 w-1 bg-gradient-to-b from-primary/30 via-primary/5 to-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.1)]" />
 
         <AnimatePresence mode="popLayout">
           {items.map((item, idx) => (
@@ -326,15 +325,15 @@ export const Itinerary = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9, x: -50 }}
               transition={{ delay: idx * 0.05, type: "spring", stiffness: 200, damping: 25 }}
-              className="relative pl-24 group"
+              className="relative pl-12 md:pl-24 group"
             >
               {/* Timeline Dot */}
               <div className={cn(
-                "absolute left-[24px] top-10 w-6 h-6 rounded-full border-4 bg-white z-10 transition-all duration-500 group-hover:scale-125",
+                "absolute left-[10px] md:left-[24px] top-10 w-4 h-4 md:w-6 md:h-6 rounded-full border-[3px] md:border-4 bg-white z-10 transition-all duration-500 group-hover:scale-125",
                 item.status === 'confirmado' ? "border-primary shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "border-border shadow-inner"
               )} />
 
-              <div className="absolute left-[34px] top-10 w-0.5 h-full bg-border/30 -z-0" />
+              <div className="absolute left-[17px] md:left-[34px] top-10 w-0.5 h-full bg-border/30 -z-0" />
 
               <ItineraryItemCard 
                 item={item} 
