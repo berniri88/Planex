@@ -16,7 +16,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         ref={ref}
         whileTap={interactable ? { scale: 0.98 } : undefined}
         className={cn(
-          'rounded-2xl border bg-card text-card-foreground shadow-sm',
+          'rounded-[var(--radius-lg)] border bg-card text-card-foreground shadow-sm',
           interactable && 'cursor-pointer hover:shadow-md transition-shadow active:shadow-sm',
           className
         )}

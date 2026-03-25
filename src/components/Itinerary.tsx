@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Plane, Hotel, Trash2, Utensils, Map, Wind, Calendar,
-  Bus as BusIcon, Train, Car, Navigation, Box, Paperclip, MapPin, Banknote, CheckCircle2, AlertCircle, HelpCircle, Clock,
-  MoreHorizontal, Copy, Download, Share2
+  Plane, Hotel, Utensils, Map, Wind, Calendar,
+  Bus as BusIcon, Train, Car, Navigation, Box, Paperclip, MapPin, Banknote, CheckCircle2, AlertCircle, HelpCircle, Clock
 } from 'lucide-react';
-import { downloadItemInfo } from '../lib/utils';
-import { type TravelItem, type TravelItemCategory } from '../lib/mockData';
+import { type TravelItem, type TravelItemCategory } from '../lib/types';
 import { cn } from '../lib/utils';
 import { ItemFormModal } from './ItemFormModal';
 import { Button } from './ui/Button';
@@ -15,6 +13,8 @@ import { BranchManager } from './BranchManager';
 import { hapticFeedback } from '../lib/haptics';
 import { BranchCompare } from './BranchCompare';
 import { DeleteConfirmModal } from './ui/DeleteConfirmModal';
+import { CompactItineraryView } from './CompactItineraryView';
+import { ICON_LIST } from './ui/IconPickerModal';
 
 const CATEGORY_ICONS: Record<TravelItemCategory, any> = {
   vuelo: Plane,
@@ -53,7 +53,7 @@ const StatusBadge = ({ status }: { status: TravelItem['status'] }) => {
 
 const TwoLineBadge = ({ label, value, icon: Icon, color = "default" }: { label: string, value: string, icon?: any, color?: "default" | "primary" }) => (
   <div className={cn(
-    "flex items-center gap-3 px-3 py-2 rounded-xl border transition-all group/badge",
+    "flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] border transition-all group/badge",
     color === "primary" 
       ? "bg-primary/5 border-primary/10 hover:border-primary/25" 
       : "bg-secondary/30 border-border hover:border-muted-foreground/10"
@@ -68,15 +68,14 @@ const TwoLineBadge = ({ label, value, icon: Icon, color = "default" }: { label: 
 
 const ItineraryItemCard = ({ 
   item, 
-  onEdit, 
-  onRemove 
+  onEdit
 }: { 
   item: TravelItem; 
   onEdit: (mode: 'edit' | 'duplicate') => void; 
-  onRemove: (id: string) => void 
 }) => {
-  const [showMenu, setShowMenu] = useState(false);
-  const Icon = CATEGORY_ICONS[item.type] || Box;
+  const Icon = (item.type === 'otros' && item.custom_icon && ICON_LIST[item.custom_icon])
+    ? ICON_LIST[item.custom_icon]
+    : CATEGORY_ICONS[item.type] || Box;
   
   const formatDate = (dateString: string) => {
     const d = new Date(dateString);
@@ -97,8 +96,7 @@ const ItineraryItemCard = ({
       whileTap="tap"
       className={cn(
         "premium-card p-5 group relative bg-card border-border cursor-pointer transition-all active:scale-[0.99] border",
-        "hover:bg-white dark:hover:bg-zinc-900/50",
-        showMenu && "z-[100] shadow-2xl"
+        "hover:bg-white dark:hover:bg-zinc-900/50"
       )}
       onClick={() => onEdit('edit')}
     >
@@ -134,7 +132,10 @@ const ItineraryItemCard = ({
                       </span>
                     )}
                     {(item.attachments && item.attachments.length > 0) && (
-                      <Paperclip size={10} className="text-primary/60 ml-0.5 sm:ml-1 shrink-0" />
+                      <div className="flex items-center gap-0.5 ml-0.5 sm:ml-1 shrink-0 bg-primary/10 px-1.5 py-0.5 rounded-[var(--radius-sm)] border border-primary/20 scale-90 sm:scale-100 origin-left">
+                        <Paperclip size={11} strokeWidth={3} className="text-primary" />
+                        {item.attachments.length > 0 && <span className="text-[9px] font-black text-primary">{item.attachments.length}</span>}
+                      </div>
                     )}
                   </span>
                 </div>
@@ -144,74 +145,12 @@ const ItineraryItemCard = ({
             <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 sm:gap-2 shrink-0 w-full sm:w-auto border-t sm:border-t-0 border-border/40 pt-3 sm:pt-0 -mt-1 sm:-mt-0.5">
               <div className="relative flex items-center justify-end group/actions">
                 <StatusBadge status={item.status} />
-                
-                {/* Action Menu Button Overlay */}
-                <div className="absolute -right-1 top-1/2 -translate-y-1/2 hidden sm:block">
-                  <div className="relative">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                      className={cn(
-                        "w-9 h-9 rounded-full p-0 bg-white border border-border shadow-[0_10px_40px_rgba(0,0,0,0.15)] hover:bg-primary hover:text-white transition-all z-30",
-                        !showMenu && "opacity-0 group-hover:opacity-100"
-                      )}
-                    >
-                      <MoreHorizontal size={16} />
-                    </Button>
-
-                  <AnimatePresence>
-                    {showMenu && (
-                      <>
-                        <div className="fixed inset-0 z-30" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                          onMouseLeave={() => setShowMenu(false)}
-                          className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-[110] p-1.5"
-                        >
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onEdit('duplicate'); setShowMenu(false); }}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-all group/item"
-                          >
-                            <Copy size={14} className="text-primary group-hover/item:scale-110 transition-transform" />
-                            Duplicar
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); downloadItemInfo(item); setShowMenu(false); }}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-blue-500/10 hover:text-blue-500 rounded-lg transition-all group/item"
-                          >
-                            <Download size={14} className="text-blue-500 group-hover/item:scale-110 transition-transform" />
-                            Descargar
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); alert("Compartir próximamente..."); setShowMenu(false); }}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-purple-500/10 hover:text-purple-500 rounded-lg transition-all group/item"
-                          >
-                            <Share2 size={14} className="text-purple-500 group-hover/item:scale-110 transition-transform" />
-                            Compartir
-                          </button>
-                          <div className="h-px bg-border my-1.5 mx-1" />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onRemove(item.id); setShowMenu(false); }}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all group/item"
-                          >
-                            <Trash2 size={14} className="group-hover/item:scale-110 transition-transform" />
-                            Eliminar
-                          </button>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
               </div>
-            </div>
 
             {(cost || item.reservation_ref) && (
                 <div className="flex flex-col items-end gap-1">
                   {cost && (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-secondary/30 rounded-md border border-border/40">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-secondary/30 rounded-[var(--radius-sm)] border border-border/40">
                       <Banknote size={10} className="text-muted-foreground/70" />
                       <span className="text-[10px] font-black text-foreground">
                         {item.currency} {cost}
@@ -280,6 +219,8 @@ export const Itinerary = () => {
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const { getVisibleItems, getActiveTrip, removeItineraryItem, activeBranchId } = useTripStore();
   
+  const [viewMode, setViewMode] = useState<'default' | 'compact'>('default');
+
   const items = getVisibleItems();
   const trip = getActiveTrip();
 
@@ -290,11 +231,28 @@ export const Itinerary = () => {
       key={activeBranchId} 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-4xl mx-auto py-10 px-6 h-full overflow-y-auto no-scrollbar pb-32"
+      className="max-w-4xl mx-auto h-full flex flex-col"
     >
+      <div className="flex-1 pb-32">
+        <div className="px-6 pt-10">
       <header className="mb-12">
         <div className="flex items-center justify-between gap-4">
           <BranchManager onCompareClick={() => setIsCompareOpen(true)} />
+          
+          <div className="hidden sm:flex bg-muted/30 p-1 rounded-[var(--radius-lg)] ml-auto mr-4">
+            <button
+              onClick={() => setViewMode('default')}
+              className={cn("px-4 py-1.5 text-[11px] uppercase tracking-wider font-black rounded-[var(--radius-md)] transition-all", viewMode === 'default' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
+            >
+              Default
+            </button>
+            <button
+              onClick={() => setViewMode('compact')}
+              className={cn("px-4 py-1.5 text-[11px] uppercase tracking-wider font-black rounded-[var(--radius-md)] transition-all", viewMode === 'compact' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
+            >
+              Timeline
+            </button>
+          </div>
           
           <Button 
             onClick={() => { setSelectedItem(undefined); setModalMode('create'); setIsModalOpen(true); }}
@@ -313,59 +271,81 @@ export const Itinerary = () => {
         </div>
       </header>
 
-      <div className="space-y-6 relative">
-        {/* Connection Line */}
-        <div className="absolute left-4 md:left-8 top-12 bottom-12 w-1 bg-gradient-to-b from-primary/30 via-primary/5 to-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.1)]" />
-
-        <AnimatePresence mode="popLayout">
-          {items.map((item, idx) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9, x: -50 }}
-              transition={{ delay: idx * 0.05, type: "spring", stiffness: 200, damping: 25 }}
-              className="relative pl-12 md:pl-24 group"
-            >
-              {/* Timeline Dot */}
-              <div className={cn(
-                "absolute left-[10px] md:left-[24px] top-10 w-4 h-4 md:w-6 md:h-6 rounded-full border-[3px] md:border-4 bg-white z-10 transition-all duration-500 group-hover:scale-125",
-                item.status === 'confirmado' ? "border-primary shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "border-border shadow-inner"
-              )} />
-
-              <div className="absolute left-[17px] md:left-[34px] top-10 w-0.5 h-full bg-border/30 -z-0" />
-
-              <ItineraryItemCard 
-                item={item} 
-                onEdit={(mode) => { setSelectedItem(item); setModalMode(mode); setIsModalOpen(true); }}
-                onRemove={(id) => setItemToDelete(id)}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {items.length === 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-16 text-center space-y-4"
-          >
-            <div className="w-20 h-20 rounded-[2.5rem] bg-muted/50 flex items-center justify-center text-muted-foreground/40 relative">
-               <Wind size={36} className="animate-pulse" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-xl font-black tracking-tight opacity-50">Empty Branch</h4>
-              <p className="text-muted-foreground/60 font-medium text-[11px] max-w-sm mx-auto">
-                No items in this plan branch yet. Add your first stop below.
-              </p>
-            </div>
-          </motion.div>
-        )}
+      <div className="sm:hidden flex bg-muted/30 p-1 rounded-[var(--radius-lg)] mb-6 items-center justify-center">
+        <button
+          onClick={() => setViewMode('default')}
+          className={cn("flex-1 py-2 text-[11px] uppercase tracking-wider font-black rounded-[var(--radius-md)] transition-all", viewMode === 'default' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
+        >
+          Default
+        </button>
+        <button
+          onClick={() => setViewMode('compact')}
+          className={cn("flex-1 py-2 text-[11px] uppercase tracking-wider font-black rounded-[var(--radius-md)] transition-all", viewMode === 'compact' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
+        >
+          Timeline
+        </button>
       </div>
+
+      {viewMode === 'default' ? (
+        <div className="space-y-6 relative">
+          {/* Connection Line */}
+          <div className="absolute left-4 md:left-8 top-12 bottom-12 w-1 bg-gradient-to-b from-primary/30 via-primary/5 to-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.1)]" />
+
+          <AnimatePresence mode="popLayout">
+            {items.map((item, idx) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9, x: -50 }}
+                transition={{ delay: idx * 0.05, type: "spring", stiffness: 200, damping: 25 }}
+                className="relative pl-12 md:pl-24 group"
+              >
+                {/* Timeline Dot */}
+                <div className={cn(
+                  "absolute left-[10px] md:left-[24px] top-10 w-4 h-4 md:w-6 md:h-6 rounded-full border-[3px] md:border-4 bg-white z-10 transition-all duration-500 group-hover:scale-125",
+                  item.status === 'confirmado' ? "border-primary shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "border-border shadow-inner"
+                )} />
+
+                <div className="absolute left-[17px] md:left-[34px] top-10 w-0.5 h-full bg-border/30 -z-0" />
+
+                <ItineraryItemCard 
+                  item={item} 
+                  onEdit={(mode) => { setSelectedItem(item); setModalMode(mode); setIsModalOpen(true); }}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {items.length === 0 && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-16 text-center space-y-4"
+            >
+              <div className="w-20 h-20 rounded-[var(--radius-3xl)] bg-muted/50 flex items-center justify-center text-muted-foreground/40 relative">
+                 <Wind size={36} className="animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-xl font-black tracking-tight opacity-50">Empty Branch</h4>
+                <p className="text-muted-foreground/60 font-medium text-[11px] max-w-sm mx-auto">
+                  No items in this plan branch yet. Add your first stop below.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      ) : (
+        <CompactItineraryView 
+          items={items} 
+          onEdit={(item, mode) => { setSelectedItem(item); setModalMode(mode); setIsModalOpen(true); }}
+        />
+      )}
 
       <ItemFormModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSelectedItem(undefined); }} mode={modalMode} initialData={selectedItem} />
       <BranchCompare isOpen={isCompareOpen} onClose={() => setIsCompareOpen(false)} />
       
+      </div>
       <DeleteConfirmModal 
         isOpen={!!itemToDelete} 
         onClose={() => setItemToDelete(null)} 
@@ -377,6 +357,7 @@ export const Itinerary = () => {
           }
         }} 
       />
+      </div>
     </motion.div>
   );
 };

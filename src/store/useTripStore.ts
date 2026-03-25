@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { mockTrips, mockBranches, mockItinerary, type Trip, type PlanBranch, type TravelItem } from '../lib/mockData';
+import { type Trip, type PlanBranch, type TravelItem } from '../lib/types';
 import { hapticFeedback, hapticSelection } from '../lib/haptics';
 import { supabase } from '../lib/supabase';
 
@@ -22,6 +22,7 @@ interface TripState {
   addItineraryItem: (item: Omit<TravelItem, 'id'>) => Promise<void>;
   updateItineraryItem: (id: string, updates: Partial<TravelItem>) => Promise<void>;
   removeItineraryItem: (id: string) => Promise<void>;
+  updateTrip: (id: string, updates: Partial<Trip>) => Promise<void>;
   
   // Computed
   getActiveTrip: () => Trip | undefined;
@@ -31,11 +32,11 @@ interface TripState {
 export const useTripStore = create<TripState>()(
   persist(
     (set, get) => ({
-      trips: mockTrips,
+      trips: [],
       activeTripId: null,
-      branches: mockBranches,
+      branches: [],
       activeBranchId: '',
-      itineraryItems: mockItinerary,
+      itineraryItems: [],
       isLoading: false,
 
       fetchTrips: async () => {
@@ -55,7 +56,8 @@ export const useTripStore = create<TripState>()(
               mainCurrency: t.main_currency,
               destinationTimezone: t.destination_timezone,
               startDate: t.start_date,
-              endDate: t.end_date
+              endDate: t.end_date,
+              background_url: t.background_url
             }));
             
             const isUUID = (str: string | null) => str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
@@ -125,6 +127,7 @@ export const useTripStore = create<TripState>()(
           color: newTrip.color || 'bg-primary/5',
           main_currency: newTrip.mainCurrency || 'USD',
           destination_timezone: newTrip.destinationTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+          background_url: newTrip.background_url,
           user_id: user.id
         }]).select().single();
 
@@ -256,6 +259,23 @@ export const useTripStore = create<TripState>()(
           itineraryItems: state.itineraryItems.filter(item => item.id !== id)
         }));
         hapticFeedback('warning');
+      },
+
+      updateTrip: async (id, updates: any) => {
+        hapticFeedback('medium');
+        const dbUpdates = { ...updates };
+        
+        // Map camelCase to snake_case
+        if (updates.startDate) { dbUpdates.start_date = updates.startDate; delete dbUpdates.startDate; }
+        if (updates.endDate) { dbUpdates.end_date = updates.endDate; delete dbUpdates.endDate; }
+        if (updates.mainCurrency) { dbUpdates.main_currency = updates.mainCurrency; delete dbUpdates.mainCurrency; }
+        if (updates.destinationTimezone) { dbUpdates.destination_timezone = updates.destinationTimezone; delete dbUpdates.destinationTimezone; }
+
+        const { error } = await supabase.from('trips').update(dbUpdates).eq('id', id);
+        if (error) throw error;
+
+        await get().fetchTrips();
+        hapticFeedback('success');
       },
 
       mergeBranch: async (sourceBranchId, targetBranchId) => {

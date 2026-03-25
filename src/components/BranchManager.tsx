@@ -33,7 +33,7 @@ export const BranchManager = ({ onCompareClick }: BranchManagerProps) => {
         variant="glass"
         size="sm"
         onClick={() => { setIsOpen(!isOpen); hapticFeedback('light'); }}
-        className="flex items-center gap-3 px-5 h-11 rounded-2xl border-border border shadow-none group bg-secondary"
+        className="flex items-center gap-3 px-5 h-11 rounded-[var(--radius-lg)] border-border border shadow-none group bg-secondary"
       >
         <GitBranch size={16} className="text-primary group-hover:rotate-12 transition-transform" />
         <span className="text-xs font-black uppercase tracking-widest">{activeBranch?.name ?? 'Branches'}</span>
@@ -54,7 +54,7 @@ export const BranchManager = ({ onCompareClick }: BranchManagerProps) => {
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute left-0 mt-3 w-72 glass rounded-[2rem] shadow-2xl z-50 overflow-hidden border border-white/20 p-2"
+              className="absolute left-0 mt-3 w-72 glass rounded-[var(--radius-2xl)] shadow-2xl z-50 overflow-hidden border border-white/20 p-2"
             >
               {!isCreating ? (
                 <div className="space-y-1">
@@ -70,7 +70,7 @@ export const BranchManager = ({ onCompareClick }: BranchManagerProps) => {
                         key={branch.id}
                         onClick={() => { setActiveBranch(branch.id); setIsOpen(false); }}
                         className={cn(
-                          "w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-left transition-all group",
+                          "w-full flex items-center justify-between px-4 py-3.5 rounded-[var(--radius-md)] text-left transition-all group",
                           isActive ? "bg-primary text-primary-foreground" : "hover:bg-white/10 text-foreground/80 hover:text-foreground"
                         )}
                       >
@@ -88,7 +88,7 @@ export const BranchManager = ({ onCompareClick }: BranchManagerProps) => {
                       <Button 
                         variant="ghost"
                         onClick={() => { onCompareClick(); setIsOpen(false); }}
-                        className="w-full h-11 rounded-2xl border border-primary/20 text-primary hover:bg-primary/10 transition-all duration-300"
+                        className="w-full h-11 rounded-[var(--radius-md)] border border-primary/20 text-primary hover:bg-primary/10 transition-all duration-300"
                       >
                         <GitCompare size={16} className="mr-2" />
                         Compare Branches
@@ -111,13 +111,13 @@ export const BranchManager = ({ onCompareClick }: BranchManagerProps) => {
                    </div>
                    <input
                      autoFocus
-                     className="w-full px-4 py-3 bg-white/10 rounded-xl border-none outline-none text-sm font-bold placeholder:text-muted-foreground/30"
+                     className="w-full px-4 py-3 bg-white/10 rounded-[var(--radius-md)] border-none outline-none text-sm font-bold placeholder:text-muted-foreground/30"
                      placeholder="Branch Name..."
                      value={newBranchName}
                      onChange={(e) => setNewBranchName(e.target.value)}
                      onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                    />
-                   <Button onClick={handleCreate} className="w-full h-12 rounded-xl">Create Branch</Button>
+                   <Button onClick={handleCreate} className="w-full h-12 rounded-[var(--radius-md)]">Create Branch</Button>
                 </div>
               )}
             </motion.div>

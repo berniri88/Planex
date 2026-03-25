@@ -9,9 +9,10 @@ import { Itinerary } from './components/Itinerary';
 import { CreateTripModal } from './components/CreateTripModal';
 import { Expenses } from './components/Expenses';
 import { Button } from './components/ui/Button';
-import { LogOut, ArrowLeft, Globe, Map as MapIcon, Mountain, Moon, Sun, Calendar, Landmark } from 'lucide-react';
+import { LogOut, Globe, Map as MapIcon, Mountain, Moon, Sun, Calendar, Landmark, ArrowLeft, Pencil } from 'lucide-react';
 import { hapticFeedback } from './lib/haptics';
 import { MapView } from './components/MapView';
+import { ICON_LIST } from './lib/icons';
 
 const IconMap = {
   Globe,
@@ -49,41 +50,38 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/20 selection:text-primary transition-colors duration-500 pt-[env(safe-area-inset-top)]">
       {/* Fixed Header */}
-      <header className="fixed top-[env(safe-area-inset-top)] left-0 right-0 h-[72px] bg-background flex items-center justify-between px-6 z-[100] border-b border-border shadow-none transition-colors">
-        <div className="flex items-center gap-4">
-          {!isHome && (
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="rounded-2xl w-10 h-10 p-0 hover:bg-black/5 dark:hover:bg-white/10 transition-colors border border-border dark:border-none">
-               <ArrowLeft size={20} />
-            </Button>
-          )}
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate('/')}>
-            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 group-hover:scale-110 transition-transform duration-500">
-              <span className="text-white text-lg font-black italic">P</span>
+      {isHome && (
+        <header className="fixed top-[env(safe-area-inset-top)] left-0 right-0 h-[72px] bg-background flex items-center justify-between px-6 z-[100] border-b border-border shadow-none transition-colors">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate('/')}>
+              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 group-hover:scale-110 transition-transform duration-500">
+                <span className="text-white text-lg font-black italic">P</span>
+              </div>
+              <h1 className="text-2xl font-black tracking-tight text-foreground">Planex</h1>
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-foreground">Planex</h1>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => { setIsDark(!isDark); hapticFeedback('light'); }} 
-            className="w-10 h-10 p-0 rounded-2xl bg-secondary text-foreground transition-all border border-border shadow-sm"
-          >
-            {isDark ? <Sun size={20} /> : <Moon size={20} />}
-          </Button>
-
-          {user && (
-            <Button variant="ghost" size="sm" onClick={signOut} className="rounded-2xl w-10 h-10 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
-              <LogOut size={20} />
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => { setIsDark(!isDark); hapticFeedback('light'); }} 
+              className="w-10 h-10 p-0 rounded-2xl bg-secondary text-foreground transition-all border border-border shadow-sm"
+            >
+              {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </Button>
-          )}
-        </div>
-      </header>
+
+            {user && (
+              <Button variant="ghost" size="sm" onClick={signOut} className="rounded-2xl w-10 h-10 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+                <LogOut size={20} />
+              </Button>
+            )}
+          </div>
+        </header>
+      )}
 
       {/* Content wrapper with top padding to account for fixed header */}
-      <main className="flex-1 mt-[72px] relative w-full overflow-x-hidden">
+      <main className={cn("flex-1 relative w-full", isHome && "mt-[72px]")}>
          {children}
       </main>
     </div>
@@ -93,6 +91,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
 const TripContainer = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const trips = useTripStore(state => state.trips);
   const isLoading = useTripStore(state => state.isLoading);
   const [activeTab, setActiveTab] = React.useState<'timeline' | 'map' | 'expenses'>('timeline');
@@ -121,9 +120,14 @@ const TripContainer = () => {
       {/* Trip Bar Sticky below Header */}
       <div className="sticky top-0 z-40 px-6 py-4 bg-background border-b border-border flex-shrink-0 -mt-0 transition-colors">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-           <div className="flex flex-col items-center sm:items-start">
-              <h2 className="text-xl font-black tracking-tighter italic leading-none">{trip.name}</h2>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1.5">{trip.dates}</p>
+           <div className="flex items-center gap-4">
+             <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="rounded-2xl w-10 h-10 p-0 hover:bg-black/5 dark:hover:bg-white/10 transition-colors border border-border dark:border-none">
+                <ArrowLeft size={20} />
+             </Button>
+             <div className="flex flex-col items-center sm:items-start">
+                <h2 className="text-xl font-black tracking-tighter italic leading-none">{trip.name}</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1.5">{trip.dates}</p>
+             </div>
            </div>
 
            <div className="flex gap-1 p-1 bg-secondary border border-border rounded-2xl mx-4 transition-colors">
@@ -157,7 +161,7 @@ const TripContainer = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar relative">
+      <div className="flex-1 relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -181,6 +185,18 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const trips = useTripStore(state => state.trips);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [editingTrip, setEditingTrip] = React.useState<any>(null);
+
+  const openEditModal = (trip: any) => {
+    setEditingTrip(trip);
+    setIsModalOpen(true);
+    hapticFeedback('medium');
+  };
+
+  const closeModals = () => {
+    setIsModalOpen(false);
+    setEditingTrip(null);
+  };
 
   return (
     <motion.div
@@ -204,7 +220,7 @@ const Dashboard = () => {
         </div>
         <Button 
           size="lg" 
-          onClick={() => { setIsModalOpen(true); hapticFeedback('medium'); }}
+          onClick={() => { setEditingTrip(null); setIsModalOpen(true); hapticFeedback('medium'); }}
           className="h-20 px-12 text-xl shadow-2xl hover:scale-105 transition-all rounded-[2.5rem]"
         >
           <span className="mr-3 font-light text-3xl">+</span> Start Planning
@@ -218,25 +234,53 @@ const Dashboard = () => {
              onClick={() => { navigate(`/trip/${trip.id}`); hapticFeedback('medium'); }}
              whileHover={{ scale: 1.03 }}
              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-             className="premium-card p-10 cursor-pointer group relative overflow-hidden flex flex-col min-h-[420px] bg-card border-border transition-colors"
+             className="premium-card p-10 cursor-pointer group relative overflow-hidden flex flex-col min-h-[420px] bg-card border-border transition-colors group"
           >
+            {/* Background Image if exists */}
+            {trip.background_url && (
+              <div className="absolute inset-0 z-0 bg-slate-900/5">
+                <img 
+                  src={trip.background_url} 
+                  alt="" 
+                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-all duration-700 hover:scale-110" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+              </div>
+            )}
+
             <div className={`absolute top-[-20%] right-[-20%] w-[60%] h-[60%] ${trip.color} rounded-full blur-3xl opacity-30 transition-transform group-hover:scale-150 duration-1000`} />
             
-            <div className="w-16 h-16 bg-secondary rounded-[2rem] flex items-center justify-center mb-10 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500 shadow-sm border border-border">
-               {(() => {
-                 const Icon = IconMap[trip.icon as keyof typeof IconMap] || Globe;
-                 return <Icon size={32} />;
-               })()}
-            </div>
-            
-            <div className="mt-auto space-y-6">
-               <span className="inline-block px-5 py-2 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.3em] border border-primary/10">
-                  {trip.status}
-               </span>
-               <div className="space-y-2">
-                 <h3 className="text-4xl font-black text-foreground leading-none tracking-tighter italic">{trip.name}</h3>
-                 <p className="text-sm text-muted-foreground font-bold uppercase tracking-[0.2em]">{trip.dates}</p>
-               </div>
+            <div className="relative z-10 flex flex-col h-full">
+              <div className="flex justify-between items-start mb-10">
+                <div className="w-16 h-16 bg-secondary rounded-[2rem] flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500 shadow-sm border border-border">
+                  {(() => {
+                    const Icon = ICON_LIST[trip.icon] || IconMap[trip.icon as keyof typeof IconMap] || Globe;
+                    return <Icon size={32} />;
+                  })()}
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditModal(trip);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 rounded-2xl bg-background/80 backdrop-blur-md border border-border shadow-xl w-12 h-12 p-0 flex items-center justify-center text-primary hover:bg-primary hover:text-white"
+                >
+                  <Pencil size={20} />
+                </Button>
+              </div>
+              
+              <div className="mt-auto space-y-6">
+                 <span className="inline-block px-5 py-2 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.3em] border border-primary/10">
+                    {trip.status}
+                 </span>
+                 <div className="space-y-2">
+                   <h3 className="text-4xl font-black text-foreground leading-none tracking-tighter italic">{trip.name}</h3>
+                   <p className="text-sm text-muted-foreground font-bold uppercase tracking-[0.2em]">{trip.dates}</p>
+                 </div>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -252,7 +296,11 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <CreateTripModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <CreateTripModal 
+        isOpen={isModalOpen} 
+        onClose={closeModals} 
+        initialTrip={editingTrip}
+      />
     </motion.div>
   );
 };

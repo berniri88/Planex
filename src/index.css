@@ -32,7 +32,14 @@
     --input: 214.3 32% 91%;
     --ring: 221.2 83.2% 53.3%;
     
-    --radius: 2rem;
+    --radius-3xl: 2rem;       /* 32px */
+    --radius-2xl: 1.5rem;     /* 24px */
+    --radius-xl: 1.25rem;     /* 20px */
+    --radius-lg: 1rem;        /* 16px */
+    --radius-md: 0.75rem;     /* 12px */
+    --radius-sm: 0.5rem;      /* 8px */
+    
+    --radius: var(--radius-2xl);
     
     /* Zero transparency shadows to avoid greyish look */
     --shadow-premium: 0 20px 40px -10px rgba(0,0,0,0.1);
@@ -76,12 +83,12 @@
   }
   
   .premium-card {
-    @apply bg-card shadow-premium rounded-[2.5rem] border border-border;
+    @apply bg-card shadow-premium rounded-[var(--radius-3xl)] border border-border;
   }
 }
 
 body {
-  @apply bg-background text-foreground;
+  @apply bg-background text-foreground overflow-x-hidden w-full;
   margin: 0;
   padding: 0;
 }

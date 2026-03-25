@@ -60,13 +60,13 @@ export const AddItemModal = ({ isOpen, onClose }: Omit<AddItemModalProps, 'tripI
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-popover rounded-[3rem] shadow-2xl w-full max-w-xl p-10 relative overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto border border-border"
+              className="bg-popover rounded-[var(--radius-3xl)] shadow-2xl w-full max-w-xl p-10 relative overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto border border-border"
             >
               <div className="absolute top-0 left-0 w-full h-2 bg-primary" />
               
               <div className="flex items-center justify-between mb-10">
                 <h2 className="text-3xl font-black tracking-tighter italic text-foreground">Add to Trip</h2>
-                <Button variant="ghost" size="sm" onClick={onClose} className="w-10 h-10 p-0 rounded-2xl bg-secondary border border-border">
+                <Button variant="ghost" size="sm" onClick={onClose} className="w-10 h-10 p-0 rounded-[var(--radius-md)] bg-secondary border border-border">
                   <X size={20} />
                 </Button>
               </div>
@@ -80,7 +80,7 @@ export const AddItemModal = ({ isOpen, onClose }: Omit<AddItemModalProps, 'tripI
                         key={t.id}
                         type="button"
                         onClick={() => { setType(t.id as any); hapticFeedback('light'); }}
-                        className={`flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 transition-all duration-300 ${
+                        className={`flex flex-col items-center justify-center p-6 rounded-[var(--radius-lg)] border-2 transition-all duration-300 ${
                           type === t.id 
                             ? 'border-primary bg-primary/5 text-primary scale-[1.05] shadow-lg shadow-primary/10' 
                             : 'border-border bg-secondary text-muted-foreground hover:border-primary/30'
@@ -98,7 +98,7 @@ export const AddItemModal = ({ isOpen, onClose }: Omit<AddItemModalProps, 'tripI
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Details</span>
                     <input
                       required
-                      className="w-full px-8 py-5 bg-secondary rounded-[2rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-bold placeholder:text-muted-foreground/30 transition-all"
+                      className="w-full px-8 py-5 bg-secondary rounded-[var(--radius-lg)] border-2 border-border focus:border-primary/30 outline-none text-sm font-bold placeholder:text-muted-foreground/30 transition-all"
                       placeholder="Where to?"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -114,7 +114,7 @@ export const AddItemModal = ({ isOpen, onClose }: Omit<AddItemModalProps, 'tripI
                   />
 
                   <textarea
-                    className="w-full px-8 py-6 bg-secondary rounded-[2.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium placeholder:text-muted-foreground/30 min-h-[120px] resize-none transition-all"
+                    className="w-full px-8 py-6 bg-secondary rounded-[var(--radius-lg)] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium placeholder:text-muted-foreground/30 min-h-[120px] resize-none transition-all"
                     placeholder="Notes..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -123,7 +123,7 @@ export const AddItemModal = ({ isOpen, onClose }: Omit<AddItemModalProps, 'tripI
 
                 <Button 
                   type="submit" 
-                  className="w-full h-16 text-lg font-black tracking-widest uppercase rounded-[2.5rem] shadow-xl shadow-primary/30"
+                  className="w-full h-16 text-lg font-black tracking-widest uppercase rounded-[var(--radius-lg)] shadow-xl shadow-primary/30"
                 >
                   Add to Itinerary
                 </Button>

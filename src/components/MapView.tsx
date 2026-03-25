@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTripStore } from '../store/useTripStore';
 import { ItemFormModal, CATEGORIES } from './ItemFormModal';
-import { type TravelItem } from '../lib/mockData';
+import { type TravelItem } from '../lib/types';
 import { Navigation, Edit3, Calendar, Box, ChevronUp, ChevronDown, X, ChevronRight, Maximize2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';

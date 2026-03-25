@@ -15,17 +15,20 @@ import {
   Calendar as CalendarIcon,
   Paperclip,
   MoreHorizontal,
-  Copy, Download, Share2
+  Copy, Download, Share2,
+  Loader2
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { Button } from './ui/Button';
 import { useTripStore } from '../store/useTripStore';
-import { type TravelItem, type TravelItemCategory, type LocationData, type Attachment } from '../lib/mockData';
+import { type TravelItem, type TravelItemCategory, type LocationData, type Attachment } from '../lib/types';
 import { cn, downloadItemInfo } from '../lib/utils';
 import { hapticFeedback } from '../lib/haptics';
 import { getHomeTimezone, formatForInput } from '../lib/timezone';
 import { MootsTimePicker } from './MootsDatePicker';
 import { GpxTrackTab } from './GpxTrackTab';
 import { DeleteConfirmModal } from './ui/DeleteConfirmModal';
+import { IconPickerModal, ICON_LIST } from './ui/IconPickerModal';
 
 interface ItemFormModalProps {
   isOpen: boolean;
@@ -100,7 +103,7 @@ const CustomDropdown = ({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-5 py-3.5 bg-secondary rounded-2xl border-2 border-border focus:border-primary/30 outline-none text-sm font-bold transition-all hover:bg-secondary/80"
+        className="w-full flex items-center justify-between px-5 py-3.5 bg-secondary rounded-[var(--radius-lg)] border-2 border-border focus:border-primary/30 outline-none text-sm font-bold transition-all hover:bg-secondary/80"
       >
         <div className="flex items-center gap-3 truncate">
           {selectedOption ? (
@@ -123,7 +126,7 @@ const CustomDropdown = ({
               initial={{ opacity: 0, y: -4, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.95 }}
-              className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden z-[160] max-h-60 overflow-y-auto"
+              className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-[var(--radius-lg)] shadow-2xl overflow-hidden z-[160] max-h-60 overflow-y-auto"
             >
               <div className="p-1.5 space-y-1">
                 {options.map((opt) => (
@@ -135,7 +138,7 @@ const CustomDropdown = ({
                       setIsOpen(false);
                     }}
                     className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all",
+                      "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-[var(--radius-md)] transition-all",
                       value === opt.id ? "bg-primary text-white" : "hover:bg-secondary text-foreground"
                     )}
                   >
@@ -199,6 +202,9 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState<'origin' | 'destination' | 'location' | null>(null);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+  const [customIconName, setCustomIconName] = useState<string | undefined>(undefined);
 
   // Debounced Search Logic with Photon
   useEffect(() => {
@@ -279,6 +285,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
         setNotes(initialData.notes || '');
         setAttachments(initialData.attachments || []);
         setGpxUrl(initialData.gpx_url);
+        setCustomIconName(initialData.custom_icon);
       } else {
         setType('vuelo');
         setStatus('idea');
@@ -300,6 +307,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
         setNotes('');
         setAttachments([]);
         setGpxUrl(undefined);
+        setCustomIconName(undefined);
       }
       setActiveTab('info');
       setSearchResults([]);
@@ -332,7 +340,8 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
       reservation_ref: reservationRef,
       notes,
       attachments,
-      gpx_url: gpxUrl
+      gpx_url: gpxUrl,
+      custom_icon: type === 'otros' ? customIconName : undefined
     };
 
     if (type === 'actividad') {
@@ -370,7 +379,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || isView) return;
 
@@ -379,24 +388,51 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
       return;
     }
 
-    const newAttachments: Attachment[] = [];
-    Array.from(files).forEach(file => {
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`El archivo ${file.name} supera los 10MB.`);
-        return;
-      }
-      newAttachments.push({
-        id: Math.random().toString(36).substring(7),
-        name: file.name,
-        url: URL.createObjectURL(file),
-        referenceText: ''
-      });
-    });
+    setIsUploading(true);
+    try {
+      const newAttachments: Attachment[] = [];
 
-    setAttachments([...attachments, ...newAttachments]);
+      for (const file of Array.from(files)) {
+        if (file.size > 10 * 1024 * 1024) {
+          alert(`El archivo ${file.name} supera los 10MB.`);
+          continue;
+        }
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `attachments/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('attachments')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('attachments')
+          .getPublicUrl(filePath);
+
+        newAttachments.push({
+          id: Math.random().toString(36).substring(7),
+          name: file.name,
+          url: publicUrl,
+          referenceText: ''
+        });
+      }
+
+      setAttachments([...attachments, ...newAttachments]);
+      hapticFeedback('success');
+    } catch (error: any) {
+      console.error('Error uploading attachments:', error);
+      alert(`Error al subir archivos: ${error.message || 'Desconocido'}. Asegúrate de que el bucket "attachments" exista.`);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const SelectedIcon = CATEGORIES.find(c => c.id === type)?.icon || Box;
+  const SelectedIcon = type === 'otros' && customIconName && ICON_LIST[customIconName] 
+    ? ICON_LIST[customIconName] 
+    : (CATEGORIES.find(c => c.id === type)?.icon || Box);
 
   return (
     <AnimatePresence>
@@ -414,24 +450,24 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-popover rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl w-full max-w-3xl flex flex-col h-[90vh] sm:h-[85vh] max-h-[95vh] pointer-events-auto border border-border relative"
+            className="bg-popover rounded-[var(--radius-3xl)] shadow-2xl w-full max-w-3xl flex flex-col h-[90vh] sm:h-[85vh] max-h-[95vh] pointer-events-auto border border-border relative"
           >
             {/* Header Tabs Navigation */}
-            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md relative overflow-visible group/header h-16 sm:h-20 shrink-0 rounded-t-[1.5rem] sm:rounded-t-[2.5rem] z-[120]">
+            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md relative overflow-visible group/header h-16 sm:h-20 shrink-0 rounded-t-[var(--radius-3xl)] z-[120]">
               {/* Integrated Side Icon Section */}
               <div className="flex items-center h-full min-w-0">
-                <div className="w-16 sm:w-24 h-full bg-primary/10 flex items-center justify-center relative overflow-hidden rounded-tl-[1.5rem] sm:rounded-tl-[2.5rem] shrink-0 border-r border-border/50 hidden sm:flex">
+                <div className="w-16 sm:w-24 h-full bg-primary/10 flex items-center justify-center relative overflow-hidden rounded-tl-[var(--radius-3xl)] shrink-0 border-r border-border/50 hidden sm:flex">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
                   <SelectedIcon size={48} strokeWidth={1.5} className="text-primary relative z-10 group-hover/header:scale-110 transition-transform duration-500" />
                   {/* Faint Large Background Icon */}
                   <SelectedIcon size={120} strokeWidth={0.5} className="absolute -right-8 -bottom-8 text-primary opacity-[0.08] rotate-12 group-hover/header:rotate-[-12deg] transition-all duration-1000" />
                 </div>
 
-                <div className="flex overflow-x-auto no-scrollbar bg-secondary/50 p-1.5 rounded-2xl border-border/50 backdrop-blur-sm mx-2 sm:ml-6 shrink-0 max-w-full">
+                <div className="flex overflow-x-auto no-scrollbar bg-secondary/50 p-1.5 rounded-[var(--radius-lg)] border-border/50 backdrop-blur-sm mx-2 sm:ml-6 shrink-0 max-w-full">
                   <Button 
                     variant="ghost" 
                     onClick={() => setActiveTab('info')}
-                    className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'info' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
+                    className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-[var(--radius-md)] px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'info' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
                   >
                     <Info size={14} className="shrink-0" />
                     Información
@@ -475,7 +511,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                       size="sm" 
                       onClick={() => setIsMenuOpen(!isMenuOpen)} 
                       className={cn(
-                        "w-10 h-10 p-0 rounded-2xl border border-border transition-all shadow-sm",
+                        "w-10 h-10 p-0 rounded-[var(--radius-lg)] border border-border transition-all shadow-sm",
                         isMenuOpen ? "bg-primary text-white border-primary" : "bg-secondary hover:bg-primary hover:text-white"
                       )}
                       title="Opciones"
@@ -490,7 +526,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-[1.2rem] shadow-2xl overflow-hidden z-[300] p-1.5"
+                            className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-[var(--radius-lg)] shadow-2xl overflow-hidden z-[300] p-1.5"
                           >
                             <button
                               type="button"
@@ -531,7 +567,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                     </AnimatePresence>
                   </div>
                 )}
-                <Button variant="ghost" size="sm" onClick={onClose} className="w-10 h-10 p-0 rounded-2xl bg-secondary border border-border hover:bg-primary hover:text-white transition-colors">
+                <Button variant="ghost" size="sm" onClick={onClose} className="w-10 h-10 p-0 rounded-[var(--radius-lg)] bg-secondary border border-border hover:bg-primary hover:text-white transition-colors">
                   <X size={20} />
                 </Button>
               </div>
@@ -556,13 +592,30 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                     {/* Category Selection */}
                     <div className="space-y-3">
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Tipo de Ítem</span>
-                      <CustomDropdown 
-                        options={CATEGORIES}
-                        value={type}
-                        onChange={setType}
-                        placeholder="Seleccionar tipo"
-                        disabled={isView}
-                      />
+                      <div className="flex items-center gap-2">
+                        <CustomDropdown 
+                          options={CATEGORIES}
+                          value={type}
+                          onChange={setType}
+                          placeholder="Seleccionar tipo"
+                          disabled={isView}
+                        />
+                        {type === 'otros' && !isView && (
+                          <Button 
+                            type="button" 
+                            variant="secondary" 
+                            onClick={() => setIsIconPickerOpen(true)}
+                            className="h-[52px] px-4 rounded-[var(--radius-md)] flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border-2 border-primary/20 transition-all font-bold text-xs"
+                          >
+                             {customIconName && ICON_LIST[customIconName] ? (
+                              React.createElement(ICON_LIST[customIconName], { size: 18 })
+                            ) : (
+                              <Box size={18} />
+                            )}
+                            Cambiar
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Status Selection */}
@@ -593,7 +646,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                         disabled={isView}
                         onClick={() => setIsPickerOpen(true)}
                         className={cn(
-                          "w-full group relative overflow-hidden flex flex-col sm:flex-row gap-4 p-6 sm:p-8 rounded-[2.5rem] bg-secondary border-2 border-border hover:border-primary/30 transition-all duration-500",
+                          "w-full group relative overflow-hidden flex flex-col sm:flex-row gap-4 p-6 sm:p-8 rounded-[var(--radius-2xl)] bg-secondary border-2 border-border hover:border-primary/30 transition-all duration-500",
                           isPickerOpen && "ring-4 ring-primary/10 border-primary/40"
                         )}
                       >
@@ -643,7 +696,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                               <MapPin size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                               <input 
                                 readOnly={isView}
-                                className="w-full pl-12 pr-12 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" 
+                                className="w-full pl-12 pr-12 py-4 bg-secondary rounded-[var(--radius-xl)] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" 
                                 placeholder={field === 'origin' ? "Ej: Aeropuerto Ezeiza 123" : "Ej: Tokyo Station"} 
                                 value={field === 'origin' ? origin.address : destination.address} 
                                 onChange={e => {
@@ -762,7 +815,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                     {(!isView || url) && (
                       <div className="space-y-3">
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Enlace de Reservación</span>
-                        <input readOnly={isView} type="url" className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} />
+                        <input readOnly={isView} type="url" className="w-full px-6 py-4 bg-secondary rounded-[var(--radius-lg)] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} />
                       </div>
                     )}
                   </div>
@@ -770,7 +823,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                   <div className="space-y-6">
                     <div className="space-y-3">
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Referencia Reserva</span>
-                      <input readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-bold transition-all uppercase" placeholder="Ej: ABC123XYZ" value={reservationRef} onChange={e => setReservationRef(e.target.value)} />
+                      <input readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[var(--radius-lg)] border-2 border-border focus:border-primary/30 outline-none text-base font-bold transition-all uppercase" placeholder="Ej: ABC123XYZ" value={reservationRef} onChange={e => setReservationRef(e.target.value)} />
                     </div>
                     <div className="space-y-3">
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Notas Internas</span>
@@ -781,9 +834,9 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
               ) : activeTab === 'costos' ? (
                 <div className="p-4 sm:p-8 space-y-6 sm:space-y-10 pb-24">
                   {/* Section: COSTO */}
-                  <div className="space-y-6 sm:space-y-8 p-6 sm:p-8 bg-secondary/40 rounded-[1.5rem] sm:rounded-[2.5rem] border-2 border-border/50 shadow-inner">
+                  <div className="space-y-6 sm:space-y-8 p-6 sm:p-8 bg-secondary/40 rounded-[var(--radius-2xl)] border-2 border-border/50 shadow-inner">
                     <div className="flex items-center gap-4 ml-1">
-                      <div className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                      <div className="w-10 h-10 rounded-[var(--radius-md)] bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
                         <CreditCard size={20} />
                       </div>
                       <div>
@@ -816,7 +869,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                           readOnly={isView} 
                           type="number" 
                           step="0.01" 
-                          className="w-full px-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-base font-bold transition-all" 
+                          className="w-full px-6 py-4 bg-background border-2 border-border rounded-[var(--radius-lg)] focus:border-primary/30 outline-none text-base font-bold transition-all" 
                           placeholder="0.00" 
                           value={estimatedCost} 
                           onChange={e => setEstimatedCost(e.target.value)} 
@@ -829,7 +882,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                           readOnly={isView} 
                           type="number" 
                           step="0.01" 
-                          className="w-full px-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-base font-bold transition-all" 
+                          className="w-full px-6 py-4 bg-background border-2 border-border rounded-[var(--radius-lg)] focus:border-primary/30 outline-none text-base font-bold transition-all" 
                           placeholder="0.00" 
                           value={realCost} 
                           onChange={e => setRealCost(e.target.value)} 
@@ -856,7 +909,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                             readOnly={isView} 
                             type="number" 
                             step="0.01" 
-                            className="w-full pl-12 pr-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-base font-bold transition-all" 
+                            className="w-full pl-12 pr-6 py-4 bg-background border-2 border-border rounded-[var(--radius-lg)] focus:border-primary/30 outline-none text-base font-bold transition-all" 
                             placeholder="0.00" 
                             value={nextPaymentAmount} 
                             onChange={e => setNextPaymentAmount(e.target.value)} 
@@ -884,17 +937,23 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
               ) : activeTab === 'adjuntos' ? (
                 <div className="p-8 space-y-8">
                   {!isView && (
-                    <div className="relative border-4 border-dashed border-border hover:border-primary/50 bg-secondary rounded-[2.5rem] p-12 flex flex-col items-center justify-center text-center transition-all group overflow-hidden">
+                    <div className={cn(
+                      "relative border-4 border-dashed border-border hover:border-primary/50 bg-secondary rounded-[var(--radius-2xl)] p-12 flex flex-col items-center justify-center text-center transition-all group overflow-hidden",
+                      isUploading && "pointer-events-none opacity-50"
+                    )}>
                       <input 
                         type="file" 
                         multiple 
+                        disabled={isUploading}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                         onChange={handleFileUpload}
                       />
-                      <div className="w-20 h-20 rounded-[2rem] bg-background flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-xl">
-                        <UploadCloud size={32} />
+                      <div className="w-20 h-20 rounded-[var(--radius-lg)] bg-background flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-xl">
+                        {isUploading ? <Loader2 size={32} className="animate-spin" /> : <UploadCloud size={32} />}
                       </div>
-                      <h4 className="text-xl font-black tracking-tight mb-2">Subir archivos</h4>
+                      <h4 className="text-xl font-black tracking-tight mb-2">
+                        {isUploading ? 'Subiendo archivos...' : 'Subir archivos'}
+                      </h4>
                       <p className="text-sm text-muted-foreground max-w-xs">PDFs, imágenes o documentos (Máx. 10MB).</p>
                     </div>
                   )}
@@ -902,16 +961,27 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                   {attachments.length > 0 && (
                     <div className="grid grid-cols-1 gap-4">
                       {attachments.map((att, idx) => (
-                        <div key={att.id} className="flex flex-col sm:flex-row gap-4 p-5 bg-secondary border border-border rounded-[2rem] items-start sm:items-center shadow-sm">
-                          <div className="w-12 h-12 rounded-2xl bg-background flex items-center justify-center flex-shrink-0 shadow-inner">
+                        <div key={att.id} className="flex flex-col sm:flex-row gap-4 p-5 bg-secondary border border-border rounded-[var(--radius-lg)] items-start sm:items-center shadow-sm group/att">
+                          <div className="w-12 h-12 rounded-[var(--radius-md)] bg-background flex items-center justify-center flex-shrink-0 shadow-inner group-hover/att:scale-110 transition-transform">
                              <FileIcon size={20} className="text-primary" />
                           </div>
                           <div className="flex-1 min-w-0 space-y-2 w-full">
-                             <p className="text-sm font-bold truncate">{att.name}</p>
+                             <div className="flex items-center justify-between gap-4">
+                               <p className="text-sm font-black truncate">{att.name}</p>
+                               <a 
+                                 href={att.url} 
+                                 target="_blank" 
+                                 rel="noopener noreferrer"
+                                 className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1 shrink-0"
+                               >
+                                 <Download size={12} />
+                                 Ver / Descargar
+                               </a>
+                             </div>
                              <input 
                                readOnly={isView}
-                               className="w-full text-xs px-4 py-2 bg-background border border-border rounded-xl outline-none focus:border-primary/30"
-                               placeholder="Nota de referencia..."
+                               className="w-full text-xs px-4 py-2 bg-background border border-border rounded-xl outline-none focus:border-primary/30 transition-all"
+                               placeholder="Nota de referencia (ej: Localizador, Asiento, etc.)"
                                value={att.referenceText}
                                onChange={(e) => {
                                  const newAtt = [...attachments];
@@ -921,7 +991,16 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                              />
                           </div>
                           {!isView && (
-                            <Button variant="ghost" size="sm" type="button" className="w-12 h-12 p-0 rounded-2xl bg-secondary/50 border border-border text-destructive hover:bg-destructive hover:text-white transition-all shadow-sm" onClick={() => setAttachments(attachments.filter(a => a.id !== att.id))}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              type="button" 
+                              className="w-12 h-12 p-0 rounded-[var(--radius-md)] bg-secondary/50 border border-border text-destructive hover:bg-destructive hover:text-white transition-all shadow-sm" 
+                              onClick={() => {
+                                setAttachments(attachments.filter(a => a.id !== att.id));
+                                hapticFeedback('warning');
+                              }}
+                            >
                                <Trash2 size={18} />
                             </Button>
                           )}
@@ -941,8 +1020,8 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
             </div>
 
             {/* Fixed Footer */}
-            <div className="bg-popover border-t border-border p-6 flex items-center justify-end gap-3 z-[110] shadow-2xl rounded-b-[1.5rem] sm:rounded-b-[2rem]">
-              <Button variant="ghost" type="button" onClick={onClose} className="rounded-2xl px-8 h-12 font-black uppercase text-xs tracking-widest bg-secondary/50 hover:bg-secondary">
+            <div className="bg-popover border-t border-border p-6 flex items-center justify-end gap-3 z-[110] shadow-2xl rounded-b-[var(--radius-3xl)]">
+              <Button variant="ghost" type="button" onClick={onClose} className="rounded-[var(--radius-md)] px-8 h-12 font-black uppercase text-xs tracking-widest bg-secondary/50 hover:bg-secondary">
                 {isView ? 'Cerrar' : 'Cancelar'}
               </Button>
               {!isView && (
@@ -967,7 +1046,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                     initial={{ opacity: 0, scale: 0.9, y: 30 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                    className="relative w-full max-w-4xl bg-background rounded-[3rem] shadow-2xl overflow-hidden border border-border"
+                    className="relative w-full max-w-4xl bg-background rounded-[var(--radius-3xl)] shadow-2xl overflow-hidden border border-border"
                   >
                     <MootsTimePicker 
                       startDate={startTime} 
@@ -983,6 +1062,25 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                 </div>
               )}
             </AnimatePresence>
+            <IconPickerModal 
+              isOpen={isIconPickerOpen} 
+              onClose={() => setIsIconPickerOpen(false)} 
+              onSelect={setCustomIconName}
+              selectedIconName={customIconName}
+            />
+
+            {isPickerOpen && (
+              <MootsTimePicker 
+                startDate={startTime}
+                endDate={endTime}
+                onSave={(s, e) => {
+                  setStartTime(s);
+                  setEndTime(e);
+                  setIsPickerOpen(false);
+                }}
+                onCancel={() => setIsPickerOpen(false)}
+              />
+            )}
           </motion.div>
         </div>
       )}

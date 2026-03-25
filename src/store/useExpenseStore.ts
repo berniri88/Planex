@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { mockExpenses, type Expense } from '../lib/mockData';
+import { type Expense } from '../lib/types';
 import { convertCurrency } from '../lib/currency';
 import { hapticFeedback } from '../lib/haptics';
 import { supabase } from '../lib/supabase';
@@ -23,7 +23,7 @@ interface ExpenseState {
 export const useExpenseStore = create<ExpenseState>()(
   persist(
     (set, get) => ({
-      expenses: mockExpenses,
+      expenses: [],
       isLoading: false,
 
       fetchExpenses: async (tripId) => {

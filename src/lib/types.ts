@@ -53,6 +53,7 @@ export interface TravelItem {
 
   attachments?: Attachment[];
   gpx_url?: string;
+  custom_icon?: string; // Lucide icon name (PascalCase)
 }
 
 export interface Trip {
@@ -67,6 +68,7 @@ export interface Trip {
   mainCurrency: string;
   destination: string;
   destinationTimezone: string;
+  background_url?: string;
 }
 
 export interface PlanBranch {
@@ -102,18 +104,5 @@ export interface Balance {
   avatar?: string;
 }
 
-// --- Mock Trips ---
-
-// --- Empty Initial Data (Now using Supabase) ---
-
-export const mockTrips: Trip[] = [];
-export const mockBranches: PlanBranch[] = [];
-export const mockItinerary: TravelItem[] = [];
-export const mockExpenses: Expense[] = [];
-
-export const mockBalances: Balance[] = [];
-
-export const mockMembers = [
-  { id: 'me', name: 'You', avatar: null, color: '#3B82F6' },
-];
+// Types Only
 

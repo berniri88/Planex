@@ -29,15 +29,15 @@ export const BranchCompare = ({ isOpen, onClose }: BranchCompareProps) => {
             exit={{ opacity: 0, scale: 0.9 }}
             className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl"
           >
-            <div className="glass p-12 rounded-[3.5rem] max-w-md text-center space-y-8 border-white/20">
-               <div className="w-20 h-20 rounded-[2rem] bg-amber-500/10 flex items-center justify-center mx-auto">
+            <div className="glass p-12 rounded-[var(--radius-3xl)] max-w-md text-center space-y-8 border-white/20">
+               <div className="w-20 h-20 rounded-[var(--radius-2xl)] bg-amber-500/10 flex items-center justify-center mx-auto">
                   <AlertCircle size={40} className="text-amber-500" />
                </div>
                <div className="space-y-2">
                  <h3 className="text-3xl font-black tracking-tight">Nothing to compare</h3>
                  <p className="text-muted-foreground font-bold">You are currently on the Main branch. Create a new branch to compare alternative plans.</p>
                </div>
-               <Button onClick={onClose} className="w-full h-16 rounded-[2rem]">Got it</Button>
+               <Button onClick={onClose} className="w-full h-16 rounded-[var(--radius-lg)]">Got it</Button>
             </div>
           </motion.div>
         )}
@@ -56,7 +56,7 @@ export const BranchCompare = ({ isOpen, onClose }: BranchCompareProps) => {
         >
           <header className="px-8 py-6 flex items-center justify-between border-b border-white/10">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/30">
+              <div className="w-12 h-12 rounded-[var(--radius-md)] bg-primary flex items-center justify-center shadow-xl shadow-primary/30">
                 <GitCompare size={24} className="text-white" />
               </div>
               <div className="space-y-0.5">
@@ -69,7 +69,7 @@ export const BranchCompare = ({ isOpen, onClose }: BranchCompareProps) => {
                 </div>
               </div>
             </div>
-            <Button variant="glass" onClick={onClose} className="w-12 h-12 rounded-2xl border-white/10 text-white">
+            <Button variant="glass" onClick={onClose} className="w-12 h-12 rounded-[var(--radius-md)] border-white/10 text-white">
               <X size={24} />
             </Button>
           </header>
@@ -82,7 +82,7 @@ export const BranchCompare = ({ isOpen, onClose }: BranchCompareProps) => {
               </div>
               
               {mainItems.map(item => (
-                <div key={item.id} className="glass p-6 rounded-[2rem] border-white/5 opacity-60">
+                <div key={item.id} className="glass p-6 rounded-[var(--radius-2xl)] border-white/5 opacity-60">
                   <h4 className="text-lg font-black text-white/80 mb-2">{item.name}</h4>
                   <TravelerClock dateString={item.start_time} timezone={item.timezone} variant="compact" />
                 </div>
@@ -113,7 +113,7 @@ export const BranchCompare = ({ isOpen, onClose }: BranchCompareProps) => {
           <footer className="p-8 border-t border-white/10 flex justify-center bg-transparent backdrop-blur-xl">
             <Button 
                size="lg" 
-               className="h-16 px-12 rounded-[2rem] bg-primary text-white font-black text-xl shadow-2xl"
+               className="h-16 px-12 rounded-[var(--radius-lg)] bg-primary text-white font-black text-xl shadow-2xl"
                onClick={() => {
                  if (activeBranch) {
                    useTripStore.getState().mergeBranch(activeBranch.id, mainBranch.id);
