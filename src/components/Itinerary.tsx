@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plane, Hotel, Utensils, Map, Wind, Calendar,
-  Bus as BusIcon, Train, Car, Navigation, Box, Paperclip, MapPin, Banknote, CheckCircle2, AlertCircle, HelpCircle, Clock
+  Bus as BusIcon, Train, Car, Navigation, Box, Paperclip, MapPin, Banknote, CheckCircle2, AlertCircle, HelpCircle, Clock, Check
 } from 'lucide-react';
 import { type TravelItem, type TravelItemCategory } from '../lib/types';
 import { cn } from '../lib/utils';
@@ -13,7 +13,6 @@ import { BranchManager } from './BranchManager';
 import { hapticFeedback } from '../lib/haptics';
 import { BranchCompare } from './BranchCompare';
 import { DeleteConfirmModal } from './ui/DeleteConfirmModal';
-import { CompactItineraryView } from './CompactItineraryView';
 import { ICON_LIST } from './ui/IconPickerModal';
 
 const CATEGORY_ICONS: Record<TravelItemCategory, any> = {
@@ -219,12 +218,50 @@ export const Itinerary = () => {
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const { getVisibleItems, getActiveTrip, removeItineraryItem, activeBranchId } = useTripStore();
   
-  const [viewMode, setViewMode] = useState<'default' | 'compact'>('default');
 
   const items = getVisibleItems();
   const trip = getActiveTrip();
-
   if (!trip) return null;
+  const now = new Date();
+
+  // Helper to check if an item has passed
+  const isPassed = (item: TravelItem) => {
+    const end = item.end_time ? new Date(item.end_time) : new Date(item.start_time);
+    return end < now;
+  };
+
+  // Helper to calculate progress between items for the line
+  const getProgressInfo = () => {
+    if (items.length === 0) return { lastPassedIdx: -1, nextItemProgress: 0 };
+    
+    let lastPassedIdx = -1;
+    for (let i = items.length - 1; i >= 0; i--) {
+      if (isPassed(items[i])) {
+        lastPassedIdx = i;
+        break;
+      }
+    }
+
+    let nextItemProgress = 0;
+    if (lastPassedIdx < items.length - 1) {
+      const prevItem = lastPassedIdx === -1 ? null : items[lastPassedIdx];
+      const nextItem = items[lastPassedIdx + 1];
+      
+      const startTime = prevItem ? new Date(prevItem.end_time || prevItem.start_time).getTime() : new Date(trip.dates.split(' - ')[0]).getTime(); 
+      const endTime = new Date(nextItem.start_time).getTime();
+      const current = now.getTime();
+
+      if (current > startTime && current < endTime) {
+        nextItemProgress = (current - startTime) / (endTime - startTime);
+      } else if (current >= endTime) {
+        nextItemProgress = 1;
+      }
+    }
+
+    return { lastPassedIdx, nextItemProgress };
+  };
+
+  const { lastPassedIdx, nextItemProgress } = getProgressInfo();
 
   return (
     <motion.div 
@@ -238,21 +275,6 @@ export const Itinerary = () => {
       <header className="mb-12">
         <div className="flex items-center justify-between gap-4">
           <BranchManager onCompareClick={() => setIsCompareOpen(true)} />
-          
-          <div className="hidden sm:flex bg-muted/30 p-1 rounded-[var(--radius-lg)] ml-auto mr-4">
-            <button
-              onClick={() => setViewMode('default')}
-              className={cn("px-4 py-1.5 text-[11px] uppercase tracking-wider font-black rounded-[var(--radius-md)] transition-all", viewMode === 'default' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
-            >
-              Default
-            </button>
-            <button
-              onClick={() => setViewMode('compact')}
-              className={cn("px-4 py-1.5 text-[11px] uppercase tracking-wider font-black rounded-[var(--radius-md)] transition-all", viewMode === 'compact' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
-            >
-              Timeline
-            </button>
-          </div>
           
           <Button 
             onClick={() => { setSelectedItem(undefined); setModalMode('create'); setIsModalOpen(true); }}
@@ -271,76 +293,75 @@ export const Itinerary = () => {
         </div>
       </header>
 
-      <div className="sm:hidden flex bg-muted/30 p-1 rounded-[var(--radius-lg)] mb-6 items-center justify-center">
-        <button
-          onClick={() => setViewMode('default')}
-          className={cn("flex-1 py-2 text-[11px] uppercase tracking-wider font-black rounded-[var(--radius-md)] transition-all", viewMode === 'default' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
-        >
-          Default
-        </button>
-        <button
-          onClick={() => setViewMode('compact')}
-          className={cn("flex-1 py-2 text-[11px] uppercase tracking-wider font-black rounded-[var(--radius-md)] transition-all", viewMode === 'compact' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground")}
-        >
-          Timeline
-        </button>
-      </div>
+      <div className="space-y-6 relative">
+        {/* Background Connection Line */}
+        <div className="absolute left-6 md:left-12 top-12 bottom-12 w-0.5 bg-border -translate-x-1/2" />
 
-      {viewMode === 'default' ? (
-        <div className="space-y-6 relative">
-          {/* Connection Line */}
-          <div className="absolute left-4 md:left-8 top-12 bottom-12 w-1 bg-gradient-to-b from-primary/30 via-primary/5 to-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.1)]" />
-
-          <AnimatePresence mode="popLayout">
-            {items.map((item, idx) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9, x: -50 }}
-                transition={{ delay: idx * 0.05, type: "spring", stiffness: 200, damping: 25 }}
-                className="relative pl-12 md:pl-24 group"
-              >
-                {/* Timeline Dot */}
-                <div className={cn(
-                  "absolute left-[10px] md:left-[24px] top-10 w-4 h-4 md:w-6 md:h-6 rounded-full border-[3px] md:border-4 bg-white z-10 transition-all duration-500 group-hover:scale-125",
-                  item.status === 'confirmado' ? "border-primary shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "border-border shadow-inner"
-                )} />
-
-                <div className="absolute left-[17px] md:left-[34px] top-10 w-0.5 h-full bg-border/30 -z-0" />
-
-                <ItineraryItemCard 
-                  item={item} 
-                  onEdit={(mode) => { setSelectedItem(item); setModalMode(mode); setIsModalOpen(true); }}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {items.length === 0 && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-16 text-center space-y-4"
+        <AnimatePresence mode="popLayout">
+          {items.map((item, idx) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9, x: -50 }}
+              transition={{ delay: idx * 0.05, type: "spring", stiffness: 200, damping: 25 }}
+              className="relative pl-12 md:pl-24 group"
             >
-              <div className="w-20 h-20 rounded-[var(--radius-3xl)] bg-muted/50 flex items-center justify-center text-muted-foreground/40 relative">
-                 <Wind size={36} className="animate-pulse" />
+              {/* Timeline Dot */}
+              <div className="absolute left-6 md:left-12 top-10 z-10 -translate-x-1/2">
+                {isPassed(item) ? (
+                  <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 border-2 border-white dark:border-zinc-900 group-hover:scale-110 transition-transform">
+                    <Check size={14} className="text-white w-4 h-4" strokeWidth={4} />
+                  </div>
+                ) : (
+                  <div className={cn(
+                    "w-6 h-6 rounded-full border-2 bg-white transition-all duration-500 group-hover:scale-125 flex items-center justify-center",
+                    item.status === 'confirmado' ? "border-primary shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "border-border shadow-inner"
+                  )} />
+                )}
               </div>
-              <div className="space-y-1">
-                <h4 className="text-xl font-black tracking-tight opacity-50">Empty Branch</h4>
-                <p className="text-muted-foreground/60 font-medium text-[11px] max-w-sm mx-auto">
-                  No items in this plan branch yet. Add your first stop below.
-                </p>
-              </div>
+
+              {/* Connecting Line Segment */}
+              {idx < items.length - 1 && (
+                <div className="absolute left-6 md:left-12 top-10 w-0.5 h-[calc(100%+1.5rem)] bg-border -translate-x-1/2 -z-0">
+                  {idx < lastPassedIdx && (
+                    <div className="absolute inset-0 bg-emerald-500" />
+                  )}
+                  {idx === lastPassedIdx && (
+                    <div 
+                      className="absolute top-0 left-0 w-full bg-emerald-500" 
+                      style={{ height: `${nextItemProgress * 100}%` }}
+                    />
+                  )}
+                </div>
+              )}
+
+              <ItineraryItemCard 
+                item={item} 
+                onEdit={(mode) => { setSelectedItem(item); setModalMode(mode); setIsModalOpen(true); }}
+              />
             </motion.div>
-          )}
-        </div>
-      ) : (
-        <CompactItineraryView 
-          items={items} 
-          onEdit={(item, mode) => { setSelectedItem(item); setModalMode(mode); setIsModalOpen(true); }}
-        />
-      )}
+          ))}
+        </AnimatePresence>
+
+        {items.length === 0 && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-16 text-center space-y-4"
+          >
+            <div className="w-20 h-20 rounded-[var(--radius-3xl)] bg-muted/50 flex items-center justify-center text-muted-foreground/40 relative">
+               <Wind size={36} className="animate-pulse" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-xl font-black tracking-tight opacity-50">Empty Branch</h4>
+              <p className="text-muted-foreground/60 font-medium text-[11px] max-w-sm mx-auto">
+                No items in this plan branch yet. Add your first stop below.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </div>
 
       <ItemFormModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSelectedItem(undefined); }} mode={modalMode} initialData={selectedItem} />
       <BranchCompare isOpen={isCompareOpen} onClose={() => setIsCompareOpen(false)} />

@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { TravelItem } from '../lib/types';
 import { cn } from '../lib/utils';
-import { Plane, Hotel, Map, Utensils, Box, Calendar, Bus as BusIcon, Train, Car, Navigation, Paperclip } from 'lucide-react';
+import { Plane, Hotel, Map, Utensils, Box, Calendar, Bus as BusIcon, Train, Car, Navigation, Paperclip, BadgeCheck } from 'lucide-react';
 import { ICON_LIST } from './ui/IconPickerModal';
 
 const CATEGORY_ICONS: Record<string, any> = {
@@ -63,6 +63,8 @@ export const CompactItineraryView = ({ items, onEdit }: CompactItineraryViewProp
   const HOUR_HEIGHT = 60 * PIXELS_PER_MINUTE;
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const now = new Date();
+  const currentTs = now.getTime();
 
   useEffect(() => {
     if (containerRef.current) {
@@ -239,6 +241,7 @@ export const CompactItineraryView = ({ items, onEdit }: CompactItineraryViewProp
                                         initial="initial"
                                     >
                                         <svg className="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible">
+                                            {/* Background Segments (Original Color) */}
                                             <motion.path 
                                                 variants={{ 
                                                   initial: { strokeWidth: 8 },
@@ -255,9 +258,38 @@ export const CompactItineraryView = ({ items, onEdit }: CompactItineraryViewProp
                                                     `M ${xBase} 0 L ${xBase} ${itemHeight}`
                                                 )}
                                                 fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" 
-                                                className={cn(theme.text.split(' ')[0], "pointer-events-auto cursor-pointer")}
+                                                className={cn(theme.text.split(' ')[0], "pointer-events-auto cursor-pointer opacity-30")}
                                                 onClick={() => onEdit(item, 'edit')}
                                             />
+                                            {/* Progress Segments (Emerald Green) */}
+                                            {(currentTs > item.itemStart) && (
+                                              <motion.path 
+                                                  variants={{ 
+                                                    initial: { strokeWidth: 8 },
+                                                    hover: { strokeWidth: 12 } 
+                                                  }}
+                                                  transition={{ duration: 0.2, ease: "easeOut" }}
+                                                  d={(() => {
+                                                    const progressEndTs = Math.min(item.itemEnd, currentTs);
+                                                    const progressH = ((progressEndTs - item.itemStart) / 60000) * PIXELS_PER_MINUTE;
+                                                    
+                                                    if (!item.isBranch) {
+                                                      return `M ${xBase} 0 L ${xBase} ${progressH}`;
+                                                    }
+                                                    
+                                                    if (item.masterEnd && item.masterEnd < progressEndTs) {
+                                                      // This part covers the branch AND the merge back
+                                                      return `M ${xOffset} 0 L ${xOffset} ${((item.masterEnd - item.itemStart) / 60000) * PIXELS_PER_MINUTE - 4} Q ${xOffset} ${((item.masterEnd - item.itemStart) / 60000) * PIXELS_PER_MINUTE + 12}, ${xBase} ${((item.masterEnd - item.itemStart) / 60000) * PIXELS_PER_MINUTE + 12} L ${xBase} ${progressH}`;
+                                                    } else {
+                                                      // Only the branch part (or partial branch)
+                                                      return `M ${xOffset} 0 L ${xOffset} ${progressH}`;
+                                                    }
+                                                  })()}
+                                                  fill="none" stroke="#10b981" strokeLinecap="round" strokeLinejoin="round" 
+                                                  className="pointer-events-auto cursor-pointer"
+                                                  onClick={() => onEdit(item, 'edit')}
+                                              />
+                                            )}
                                         </svg>
 
                                         <motion.div 
@@ -265,12 +297,18 @@ export const CompactItineraryView = ({ items, onEdit }: CompactItineraryViewProp
                                             variants={{ initial: { scale: 1 }, hover: { scale: 1.25 } }}
                                             transition={{ duration: 0.2, ease: "easeOut" }}
                                             className={cn(
-                                                "absolute top-0 w-7 h-7 rounded-full border-[2.5px] border-white dark:border-slate-900 shadow-xl flex items-center justify-center bg-white dark:bg-slate-800 z-50 pointer-events-auto cursor-pointer",
-                                                theme.border,
+                                                "absolute top-0 w-7 h-7 rounded-full border-[2.5px] shadow-xl flex items-center justify-center z-50 pointer-events-auto cursor-pointer transition-colors duration-500",
+                                                currentTs > item.itemEnd 
+                                                  ? "bg-emerald-500 border-white dark:border-slate-900" 
+                                                  : cn("bg-white dark:bg-slate-800", theme.border),
                                                 item.isBranch ? "left-1/2 translate-x-[11px]" : "left-1/2 -translate-x-[14px]"
                                             )}
                                         >
-                                            <Icon size={12} className={theme.text} strokeWidth={3} />
+                                            {currentTs > item.itemEnd ? (
+                                              <BadgeCheck size={14} className="text-white" strokeWidth={3} />
+                                            ) : (
+                                              <Icon size={12} className={theme.text} strokeWidth={3} />
+                                            )}
                                             <div className={cn("absolute w-[180px] bg-white dark:bg-slate-900 px-3 py-2 rounded-[var(--radius-md)] border border-border dark:border-white/10 shadow-2xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none translate-y-2 group-hover:translate-y-0", trackIdx === 2 ? "right-10" : "left-10")}>
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className={cn("text-[8px] font-black uppercase tracking-widest px-1.5 py-[1px] rounded-[var(--radius-sm)]", theme.faint, theme.text)}>{formatTime(new Date(item.itemStart))}</span>

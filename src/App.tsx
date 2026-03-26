@@ -9,16 +9,9 @@ import { Itinerary } from './components/Itinerary';
 import { CreateTripModal } from './components/CreateTripModal';
 import { Expenses } from './components/Expenses';
 import { Button } from './components/ui/Button';
-import { LogOut, Globe, Map as MapIcon, Mountain, Moon, Sun, Calendar, Landmark, ArrowLeft, Pencil } from 'lucide-react';
+import { LogOut, Calendar, Landmark, ArrowLeft, Pencil, Moon, Sun, Map as MapIcon } from 'lucide-react';
 import { hapticFeedback } from './lib/haptics';
 import { MapView } from './components/MapView';
-import { ICON_LIST } from './lib/icons';
-
-const IconMap = {
-  Globe,
-  Map: MapIcon,
-  Mountain,
-};
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isDark, setIsDark] = React.useState(() => {
@@ -251,14 +244,7 @@ const Dashboard = () => {
             <div className={`absolute top-[-20%] right-[-20%] w-[60%] h-[60%] ${trip.color} rounded-full blur-3xl opacity-30 transition-transform group-hover:scale-150 duration-1000`} />
             
             <div className="relative z-10 flex flex-col h-full">
-              <div className="flex justify-between items-start mb-10">
-                <div className="w-16 h-16 bg-secondary rounded-[2rem] flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500 shadow-sm border border-border">
-                  {(() => {
-                    const Icon = ICON_LIST[trip.icon] || IconMap[trip.icon as keyof typeof IconMap] || Globe;
-                    return <Icon size={32} />;
-                  })()}
-                </div>
-
+              <div className="flex justify-end items-start mb-10 h-16">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -266,7 +252,7 @@ const Dashboard = () => {
                     e.stopPropagation();
                     openEditModal(trip);
                   }}
-                  className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 rounded-2xl bg-background/80 backdrop-blur-md border border-border shadow-xl w-12 h-12 p-0 flex items-center justify-center text-primary hover:bg-primary hover:text-white"
+                  className="opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 rounded-full bg-white/10 dark:bg-black/10 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-xl w-12 h-12 p-0 flex items-center justify-center text-foreground hover:bg-primary hover:text-white"
                 >
                   <Pencil size={20} />
                 </Button>
