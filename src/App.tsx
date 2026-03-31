@@ -41,7 +41,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isHome = location.pathname === '/';
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/20 selection:text-primary transition-colors duration-500 pt-[env(safe-area-inset-top)]">
+    <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/20 selection:text-primary transition-colors duration-500">
       {/* Fixed Header */}
       {isHome && (
         <header className="fixed top-[env(safe-area-inset-top)] left-0 right-0 h-[72px] bg-background flex items-center justify-between px-6 z-[100] border-b border-border shadow-none transition-colors">
@@ -73,8 +73,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         </header>
       )}
 
-      {/* Content wrapper with top padding to account for fixed header */}
-      <main className={cn("flex-1 relative w-full", isHome && "mt-[72px]")}>
+      {/* Content wrapper with top padding to account for fixed header and safe area */}
+      <main className={cn("flex-1 relative w-full pt-[env(safe-area-inset-top)]", isHome && "mt-[72px]")}>
          {children}
       </main>
     </div>
@@ -110,15 +110,15 @@ const TripContainer = () => {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-72px)] bg-background transition-colors">
-      {/* Trip Bar Sticky below Header */}
-      <div className="sticky top-0 z-40 px-6 py-4 bg-background border-b border-border flex-shrink-0 -mt-0 transition-colors">
+      {/* Trip Bar Sticky below Header - Offsets for status bar on mobile */}
+      <div className="sticky top-[env(safe-area-inset-top)] z-40 px-6 py-4 bg-background border-b border-border flex-shrink-0 -mt-0 transition-colors">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
            <div className="flex items-center gap-4">
              <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="rounded-2xl w-10 h-10 p-0 hover:bg-black/5 dark:hover:bg-white/10 transition-colors border border-border dark:border-none">
                 <ArrowLeft size={20} />
              </Button>
-             <div className="flex flex-col items-center sm:items-start">
-                <h2 className="text-xl font-black tracking-tighter italic leading-none">{trip.name}</h2>
+             <div className="flex flex-col items-center sm:items-start min-w-0 flex-1">
+                <h2 className="text-xl font-black tracking-tighter italic leading-none truncate w-full">{trip.name}</h2>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mt-1.5">{trip.dates}</p>
              </div>
            </div>
@@ -316,6 +316,9 @@ function App() {
 
   return (
     <BrowserRouter>
+      {/* Global Mobile Status Bar Guard (Notch protection) */}
+      <div className="fixed top-0 left-0 right-0 h-[env(safe-area-inset-top)] bg-background z-[1000]" />
+
       {user ? (
         <Layout>
           <AnimatePresence mode="wait">
@@ -327,10 +330,12 @@ function App() {
           </AnimatePresence>
         </Layout>
       ) : (
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <div className="pt-[env(safe-area-inset-top)] min-h-screen bg-background">
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </div>
       )}
     </BrowserRouter>
   );
