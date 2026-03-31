@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Clock, CreditCard, CheckCircle2, Info, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, CreditCard, CheckCircle2 } from 'lucide-react';
 import { useTripStore } from '../store/useTripStore';
 import { Button } from './ui/Button';
 import { cn } from '../lib/utils';

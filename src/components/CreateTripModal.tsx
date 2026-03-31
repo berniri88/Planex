@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Globe, Calendar, MapPin, Loader2, UploadCloud, CheckCircle2, Users, Plus, Trash2, Mail, User } from 'lucide-react';
+import { X, Globe, MapPin, Loader2, UploadCloud, CheckCircle2, Users, Plus, Trash2, User } from 'lucide-react';
 import { useTripStore } from '../store/useTripStore';
 import { hapticFeedback } from '../lib/haptics';
 import { Button } from './ui/Button';

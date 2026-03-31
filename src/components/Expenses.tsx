@@ -7,12 +7,12 @@ import {
   Clock, 
   Plus, 
   ExternalLink,
-  ChevronRight,
   MoreHorizontal,
   Link as LinkIcon,
   Lock,
   Box
 } from 'lucide-react';
+import type { TravelItem } from '../lib/types';
 import { useTripStore } from '../store/useTripStore';
 import { useExpenseStore } from '../store/useExpenseStore';
 import { Button } from './ui/Button';
@@ -41,8 +41,8 @@ export const Expenses = () => {
 
   const itinaryExpenses = useMemo(() => {
     return itineraryItems
-      .filter(item => item.estimated_cost || item.real_cost)
-      .map(item => ({
+      .filter((item: TravelItem) => item.estimated_cost || item.real_cost)
+      .map((item: TravelItem) => ({
         ...item,
         amount: item.real_cost || item.estimated_cost || 0,
         paid: item.amount_paid || 0,
@@ -52,7 +52,7 @@ export const Expenses = () => {
   }, [itineraryItems, expenses]);
 
   const totals = useMemo(() => {
-    return itinaryExpenses.reduce((acc, curr) => ({
+    return itinaryExpenses.reduce((acc: any, curr: any) => ({
       budget: acc.budget + curr.amount,
       paid: acc.paid + curr.paid
     }), { budget: 0, paid: 0 });
@@ -291,7 +291,7 @@ export const Expenses = () => {
                exit={{ opacity: 0, y: -10 }}
                className="space-y-4"
              >
-               {itinaryExpenses.map((exp) => (
+               {itinaryExpenses.map((exp: any) => (
                  <div 
                    key={exp.id} 
                    onClick={() => handleOpenItem(exp)}
