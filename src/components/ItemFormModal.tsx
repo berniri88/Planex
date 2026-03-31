@@ -15,7 +15,7 @@ import {
   Calendar as CalendarIcon,
   Paperclip,
   MoreHorizontal,
-  Copy, Download, Share2,
+  Copy, Download,
   Loader2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -35,6 +35,7 @@ interface ItemFormModalProps {
   onClose: () => void;
   mode: 'create' | 'edit' | 'view' | 'duplicate';
   initialData?: TravelItem;
+  initialTab?: 'info' | 'costos' | 'adjuntos' | 'gpx';
 }
 
 export const CATEGORIES: { id: TravelItemCategory; label: string; icon: any }[] = [
@@ -64,7 +65,6 @@ const PAYMENT_STATUS_OPTIONS = [
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'ARS', 'BRL', 'CLP', 'MXN'];
 
-// Magic Coordinate Parser
 const parseMagicLocation = (input: string): LocationData => {
   const coordRegex = /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/;
   if (coordRegex.test(input.trim())) {
@@ -156,7 +156,7 @@ const CustomDropdown = ({
   );
 };
 
-export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormModalProps) => {
+export const ItemFormModal = ({ isOpen, onClose, mode, initialData, initialTab }: ItemFormModalProps) => {
   const isView = mode === 'view';
   const { addItineraryItem, updateItineraryItem, removeItineraryItem, getActiveTrip } = useTripStore((state: any) => ({
     addItineraryItem: state.addItineraryItem,
@@ -206,7 +206,6 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const [customIconName, setCustomIconName] = useState<string | undefined>(undefined);
 
-  // Debounced Search Logic with Photon
   useEffect(() => {
     const query = isSearching === 'origin' ? origin.address : 
                  isSearching === 'destination' ? destination.address : 
@@ -309,10 +308,10 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
         setGpxUrl(undefined);
         setCustomIconName(undefined);
       }
-      setActiveTab('info');
+      setActiveTab(initialTab || 'info');
       setSearchResults([]);
     }
-  }, [isOpen, mode, initialData]);
+  }, [isOpen, mode, initialData, initialTab]);
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -452,132 +451,47 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="bg-popover rounded-[var(--radius-3xl)] shadow-2xl w-full max-w-3xl flex flex-col h-[90vh] sm:h-[85vh] max-h-[95vh] pointer-events-auto border border-border relative"
           >
-            {/* Header Tabs Navigation */}
-            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md relative overflow-visible group/header h-16 sm:h-20 shrink-0 rounded-t-[var(--radius-3xl)] z-[120]">
-              {/* Integrated Side Icon Section */}
+            <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md h-16 sm:h-20 shrink-0 rounded-t-[var(--radius-3xl)] z-[120]">
               <div className="flex items-center h-full min-w-0">
                 <div className="w-16 sm:w-24 h-full bg-primary/10 flex items-center justify-center relative overflow-hidden rounded-tl-[var(--radius-3xl)] shrink-0 border-r border-border/50 hidden sm:flex">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-                  <SelectedIcon size={48} strokeWidth={1.5} className="text-primary relative z-10 group-hover/header:scale-110 transition-transform duration-500" />
-                  {/* Faint Large Background Icon */}
-                  <SelectedIcon size={120} strokeWidth={0.5} className="absolute -right-8 -bottom-8 text-primary opacity-[0.08] rotate-12 group-hover/header:rotate-[-12deg] transition-all duration-1000" />
+                  <SelectedIcon size={48} strokeWidth={1.5} className="text-primary relative z-10" />
                 </div>
 
                 <div className="flex overflow-x-auto no-scrollbar bg-secondary/50 p-1.5 rounded-[var(--radius-lg)] border-border/50 backdrop-blur-sm mx-2 sm:ml-6 shrink-0 max-w-full">
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setActiveTab('info')}
-                    className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-[var(--radius-md)] px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'info' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
-                  >
-                    <Info size={14} className="shrink-0" />
-                    Información
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setActiveTab('costos')}
-                    className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'costos' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
-                  >
-                    <CreditCard size={14} className="shrink-0" />
-                    Costo
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setActiveTab('adjuntos')}
-                    className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'adjuntos' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
-                  >
-                    <Paperclip size={14} className="shrink-0" />
-                    Adjuntos
-                    {attachments.length > 0 && <span className="bg-primary text-white text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full">{attachments.length}</span>}
-                  </Button>
+                  <Button variant="ghost" onClick={() => setActiveTab('info')} className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-[var(--radius-md)] px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'info' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}><Info size={14} className="shrink-0" />Información</Button>
+                  <Button variant="ghost" onClick={() => setActiveTab('costos')} className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'costos' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}><CreditCard size={14} className="shrink-0" />Costo</Button>
+                  <Button variant="ghost" onClick={() => setActiveTab('adjuntos')} className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'adjuntos' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}><Paperclip size={14} className="shrink-0" />Adjuntos {attachments.length > 0 && <span className="bg-primary text-white text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full">{attachments.length}</span>}</Button>
                   {type === 'actividad' && (
-                    <Button 
-                    variant="ghost" 
-                    onClick={() => setActiveTab('gpx')}
-                    className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'gpx' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}
-                  >
-                    <Navigation size={14} className="shrink-0" />
-                    Track GPX
-                    {gpxUrl && <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />}
-                  </Button>
+                    <Button variant="ghost" onClick={() => setActiveTab('gpx')} className={cn("text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl px-3 sm:px-4 py-2 transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap", activeTab === 'gpx' ? "bg-background shadow-sm border border-border text-primary" : "text-muted-foreground")}><Navigation size={14} className="shrink-0" />Track GPX</Button>
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center gap-1 sm:gap-2 pr-2 sm:pr-6 relative z-10 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-2 pr-2 sm:pr-6 shrink-0">
                 {mode === 'edit' && (
                   <div className="relative">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setIsMenuOpen(!isMenuOpen)} 
-                      className={cn(
-                        "w-10 h-10 p-0 rounded-[var(--radius-lg)] border border-border transition-all shadow-sm",
-                        isMenuOpen ? "bg-primary text-white border-primary" : "bg-secondary hover:bg-primary hover:text-white"
-                      )}
-                      title="Opciones"
-                    >
-                      <MoreHorizontal size={18} />
-                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(!isMenuOpen)} className={cn("w-10 h-10 p-0 rounded-[var(--radius-lg)] border border-border transition-all", isMenuOpen ? "bg-primary text-white border-primary" : "bg-secondary hover:bg-primary hover:text-white")}><MoreHorizontal size={18} /></Button>
                     <AnimatePresence>
                       {isMenuOpen && (
                         <>
                           <div className="fixed inset-0 z-[250]" onClick={() => setIsMenuOpen(false)} />
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-[var(--radius-lg)] shadow-2xl overflow-hidden z-[300] p-1.5"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => { handleDuplicate(); setIsMenuOpen(false); }}
-                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-all group/item"
-                            >
-                              <Copy size={14} className="text-primary group-hover/item:scale-110 transition-transform" />
-                              Duplicar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { if(initialData) downloadItemInfo(initialData); setIsMenuOpen(false); }}
-                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-blue-500/10 hover:text-blue-500 rounded-lg transition-all group/item"
-                            >
-                              <Download size={14} className="text-blue-500 group-hover/item:scale-110 transition-transform" />
-                              Descargar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { alert("Compartir próximamente..."); setIsMenuOpen(false); }}
-                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-purple-500/10 hover:text-purple-500 rounded-lg transition-all group/item"
-                            >
-                              <Share2 size={14} className="text-purple-500 group-hover/item:scale-110 transition-transform" />
-                              Compartir
-                            </button>
+                          <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-[var(--radius-lg)] shadow-2xl overflow-hidden z-[300] p-1.5">
+                            <button type="button" onClick={() => { handleDuplicate(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-primary/10 hover:text-primary rounded-lg transition-all"><Copy size={14} className="text-primary" />Duplicar</button>
+                            <button type="button" onClick={() => { if(initialData) downloadItemInfo(initialData); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-foreground hover:bg-blue-500/10 hover:text-blue-500 rounded-lg transition-all"><Download size={14} className="text-blue-500" />Descargar</button>
                             <div className="h-px bg-border my-1.5 mx-1" />
-                            <button
-                              type="button"
-                              onClick={() => { setIsDeleteConfirmOpen(true); setIsMenuOpen(false); }}
-                              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all group/item"
-                            >
-                              <Trash2 size={14} className="group-hover/item:scale-110 transition-transform" />
-                              Eliminar
-                            </button>
+                            <button type="button" onClick={() => { setIsDeleteConfirmOpen(true); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all"><Trash2 size={14} />Eliminar</button>
                           </motion.div>
                         </>
                       )}
                     </AnimatePresence>
                   </div>
                 )}
-                <Button variant="ghost" size="sm" onClick={onClose} className="w-10 h-10 p-0 rounded-[var(--radius-lg)] bg-secondary border border-border hover:bg-primary hover:text-white transition-colors">
-                  <X size={20} />
-                </Button>
+                <Button variant="ghost" size="sm" onClick={onClose} className="w-10 h-10 p-0 rounded-[var(--radius-lg)] bg-secondary border border-border hover:bg-primary hover:text-white transition-colors"><X size={20} /></Button>
               </div>
             </div>
 
-            <DeleteConfirmModal 
-              isOpen={isDeleteConfirmOpen} 
-              onClose={() => setIsDeleteConfirmOpen(false)} 
-              onConfirm={handleDelete} 
-            />
+            <DeleteConfirmModal isOpen={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)} onConfirm={handleDelete} />
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               {mode === 'duplicate' && (
@@ -586,501 +500,231 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData }: ItemFormMo
                   Duplicando Ítem
                 </div>
               )}
-              {activeTab === 'info' ? (
-                <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6 sm:space-y-10 pb-24">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    {/* Category Selection */}
-                    <div className="space-y-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Tipo de Ítem</span>
-                      <div className="flex items-center gap-2">
-                        <CustomDropdown 
-                          options={CATEGORIES}
-                          value={type}
-                          onChange={setType}
-                          placeholder="Seleccionar tipo"
-                          disabled={isView}
-                        />
-                        {type === 'otros' && !isView && (
-                          <Button 
-                            type="button" 
-                            variant="secondary" 
-                            onClick={() => setIsIconPickerOpen(true)}
-                            className="h-[52px] px-4 rounded-[var(--radius-md)] flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border-2 border-primary/20 transition-all font-bold text-xs"
-                          >
-                             {customIconName && ICON_LIST[customIconName] ? (
-                              React.createElement(ICON_LIST[customIconName], { size: 18 })
-                            ) : (
-                              <Box size={18} />
+              
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.15 }}
+                  className="w-full"
+                >
+                  {activeTab === 'info' ? (
+                    <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6 sm:space-y-10 pb-24">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Tipo de Ítem</span>
+                          <div className="flex items-center gap-2">
+                            <CustomDropdown options={CATEGORIES} value={type} onChange={setType} placeholder="Seleccionar tipo" disabled={isView} />
+                            {type === 'otros' && !isView && (
+                              <Button type="button" variant="secondary" onClick={() => setIsIconPickerOpen(true)} className="h-[52px] px-4 rounded-[var(--radius-md)] flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border-2 border-primary/20 transition-all font-bold text-xs">
+                                {customIconName && ICON_LIST[customIconName] ? React.createElement(ICON_LIST[customIconName], { size: 18 }) : <Box size={18} />}
+                                Cambiar
+                              </Button>
                             )}
-                            Cambiar
-                          </Button>
-                        )}
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Estado</span>
+                          <CustomDropdown options={STATUS_OPTIONS} value={status} onChange={(s) => setStatus(s as any)} placeholder="Seleccionar estado" disabled={isView} />
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Status Selection */}
-                    <div className="space-y-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Estado</span>
-                      <CustomDropdown 
-                        options={STATUS_OPTIONS}
-                        value={status}
-                        onChange={(s) => setStatus(s as any)}
-                        placeholder="Seleccionar estado"
-                        disabled={isView}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Título *</span>
-                      <input readOnly={isView} required className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-base font-bold transition-all" placeholder="Ej: Vuelo Buenos Aires -> Tokyo" value={name} onChange={e => setName(e.target.value)} />
-                    </div>
-
-                    {/* Premium Date Range Picker Integration */}
-                    <div className="space-y-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Horario</span>
-                      
-                      <button 
-                        type="button"
-                        disabled={isView}
-                        onClick={() => setIsPickerOpen(true)}
-                        className={cn(
-                          "w-full group relative overflow-hidden flex flex-col sm:flex-row gap-4 p-6 sm:p-8 rounded-[var(--radius-2xl)] bg-secondary border-2 border-border hover:border-primary/30 transition-all duration-500",
-                          isPickerOpen && "ring-4 ring-primary/10 border-primary/40"
-                        )}
-                      >
-                        {/* Left: Start */}
-                        <div className="flex-1 space-y-3 text-left">
-                           <div className="flex items-center gap-2 text-muted-foreground/60">
-                              <CalendarIcon size={14} className="group-hover:text-primary transition-colors" />
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Inicio</span>
-                           </div>
-                           <div className="space-y-1">
-                              <p className="text-base font-black text-foreground truncate">{new Date(startTime || Date.now()).toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                              <p className="text-4xl font-black tracking-tighter text-primary group-hover:scale-105 transition-transform origin-left">
-                                 {new Date(startTime || Date.now()).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })}
-                              </p>
-                           </div>
+                      <div className="space-y-6">
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Título *</span>
+                          <input readOnly={isView} required className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-base font-bold transition-all" placeholder="Ej: Vuelo Buenos Aires -> Tokyo" value={name} onChange={e => setName(e.target.value)} />
                         </div>
 
-                        {/* Divider */}
-                        <div className="flex items-center justify-center opacity-20">
-                           <div className="w-px h-12 bg-foreground hidden sm:block" />
-                           <div className="h-px w-full bg-foreground sm:hidden" />
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Horario</span>
+                          <button type="button" disabled={isView} onClick={() => setIsPickerOpen(true)} className={cn("w-full group relative overflow-hidden flex flex-col sm:flex-row gap-4 p-6 sm:p-8 rounded-[var(--radius-2xl)] bg-secondary border-2 border-border hover:border-primary/30 transition-all duration-500", isPickerOpen && "ring-4 ring-primary/10 border-primary/40")}>
+                            <div className="flex-1 space-y-3 text-left">
+                               <div className="flex items-center gap-2 text-muted-foreground/60"><CalendarIcon size={14} /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Inicio</span></div>
+                               <div className="space-y-1">
+                                  <p className="text-base font-black text-foreground truncate">{new Date(startTime || Date.now()).toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                  <p className="text-4xl font-black tracking-tighter text-primary">{new Date(startTime || Date.now()).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
+                               </div>
+                            </div>
+                            <div className="flex items-center justify-center opacity-20"><div className="w-px h-12 bg-foreground hidden sm:block" /><div className="h-px w-full bg-foreground sm:hidden" /></div>
+                            <div className="flex-1 space-y-3 text-left">
+                               <div className="flex items-center gap-2 text-muted-foreground/60"><Clock size={14} /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Fin</span></div>
+                               <div className="space-y-1">
+                                  <p className="text-base font-black text-foreground truncate">{endTime ? new Date(endTime).toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' }) : '-'}</p>
+                                  <p className="text-4xl font-black tracking-tighter text-muted-foreground/40">{endTime ? new Date(endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'}</p>
+                               </div>
+                            </div>
+                          </button>
                         </div>
 
-                        {/* Right: End */}
-                        <div className="flex-1 space-y-3 text-left">
-                           <div className="flex items-center gap-2 text-muted-foreground/60">
-                              <Clock size={14} className="group-hover:text-primary transition-colors" />
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Fin</span>
-                           </div>
-                           <div className="space-y-1">
-                              <p className="text-base font-black text-foreground truncate">{endTime ? new Date(endTime).toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' }) : '-'}</p>
-                              <p className="text-4xl font-black tracking-tighter text-muted-foreground/40 group-hover:text-primary/60 transition-colors">
-                                 {endTime ? new Date(endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'}
-                              </p>
-                           </div>
-                        </div>
-                      </button>
-                    </div>
-
-                    {/* Searchable Location Input */}
-                    {(isTransport(type) || type === 'actividad') ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {['origin', 'destination'].map((field: any) => (
-                          <div key={field} className="space-y-3 relative">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">{field === 'origin' ? 'Origen' : 'Destino'}</span>
+                        {(isTransport(type) || type === 'actividad') ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {['origin', 'destination'].map((field: any) => (
+                              <div key={field} className="space-y-3 relative">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">{field === 'origin' ? 'Origen' : 'Destino'}</span>
+                                <div className="relative">
+                                  <MapPin size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                  <input readOnly={isView} className="w-full pl-12 pr-12 py-4 bg-secondary rounded-[var(--radius-xl)] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" placeholder={field === 'origin' ? "Ej: Aeropuerto Ezeiza 123" : "Ej: Tokyo Station"} value={field === 'origin' ? origin.address : destination.address} onChange={e => {
+                                      const val = e.target.value;
+                                      const parsed = parseMagicLocation(val);
+                                      if (field === 'origin') setOrigin(prev => ({ ...prev, address: val, lat: parsed.lat || prev.lat, lng: parsed.lng || prev.lng }));
+                                      else setDestination(prev => ({ ...prev, address: val, lat: parsed.lat || prev.lat, lng: parsed.lng || prev.lng }));
+                                      if (!isView && !parsed.lat) setIsSearching(field);
+                                    }} />
+                                  {(field === 'origin' ? origin.lat : destination.lat) && <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-500/10 text-green-500 p-1.5 rounded-full border border-green-500/20 shadow-sm z-10 transition-all scale-110"><CheckCircle2 size={16} strokeWidth={3} /></div>}
+                                  {searchResults.length > 0 && isSearching === field && (
+                                    <div className="absolute top-full left-0 right-0 z-[100] mt-2 bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+                                      {searchResults.map((f, i) => (
+                                        <button key={i} type="button" className="w-full p-4 text-left hover:bg-secondary text-sm border-b border-border last:border-0 transition-colors font-bold group flex items-center justify-between" onClick={() => selectAddress(f, field)}>
+                                          <div className="flex flex-col"><span className="text-foreground group-hover:text-primary">{f.properties.name} {f.properties.housenumber}</span><span className="text-[10px] text-muted-foreground uppercase tracking-widest">{[f.properties.city, f.properties.country].filter(Boolean).join(', ')}</span></div>
+                                          <div className="w-6 h-6 rounded-lg bg-secondary flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:bg-primary/20 group-hover:text-primary transition-all"><Check size={14} /></div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-3 relative">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Ubicación</span>
                             <div className="relative">
                               <MapPin size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                              <input 
-                                readOnly={isView}
-                                className="w-full pl-12 pr-12 py-4 bg-secondary rounded-[var(--radius-xl)] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" 
-                                placeholder={field === 'origin' ? "Ej: Aeropuerto Ezeiza 123" : "Ej: Tokyo Station"} 
-                                value={field === 'origin' ? origin.address : destination.address} 
-                                onChange={e => {
+                              <input readOnly={isView} className="w-full pl-12 pr-12 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" placeholder="Ej: Calle 123, Ciudad" value={location.address} onChange={e => {
                                   const val = e.target.value;
                                   const parsed = parseMagicLocation(val);
-                                  
-                                  const update = (prev: LocationData) => {
-                                    if (!val.trim()) return { address: '' };
-                                    const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                    const oldClean = clean(prev.address || '');
-                                    const newClean = clean(val);
-                                    const isRefinement = prev.lat && (newClean.includes(oldClean) || oldClean.includes(newClean) || newClean.startsWith(oldClean.substring(0, 10)));
-                                    
-                                    return {
-                                      address: val,
-                                      lat: parsed.lat || (isRefinement ? prev.lat : undefined),
-                                      lng: parsed.lng || (isRefinement ? prev.lng : undefined),
-                                    };
-                                  };
-
-                                  if (field === 'origin') setOrigin(update);
-                                  else if (field === 'destination') setDestination(update);
-                                  if (!isView && !parsed.lat) setIsSearching(field);
-                                }} 
-                              />
-                              {(field === 'origin' ? origin.lat : destination.lat) && (
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-500/10 text-green-500 p-1.5 rounded-full border border-green-500/20 shadow-sm z-10 transition-all scale-110">
-                                  <CheckCircle2 size={16} strokeWidth={3} />
-                                </div>
-                              )}
-                              {searchResults.length > 0 && isSearching === field && (
-                                <div className="absolute top-full left-0 right-0 z-[100] mt-2 bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
-                                  {searchResults.map((f, i) => {
-                                    const p = f.properties;
-                                    return (
-                                      <button key={i} type="button" className="w-full p-4 text-left hover:bg-secondary text-sm border-b border-border last:border-0 transition-colors font-bold group flex items-center justify-between" onClick={() => selectAddress(f, field)}>
-                                        <div className="flex flex-col">
-                                          <span className="text-foreground group-hover:text-primary transition-colors">{p.name} {p.housenumber}</span>
-                                          <span className="text-[10px] text-muted-foreground uppercase tracking-widest">{[p.city, p.country].filter(Boolean).join(', ')}</span>
-                                        </div>
-                                        <div className="w-6 h-6 rounded-lg bg-secondary flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:bg-primary/20 group-hover:text-primary transition-all">
-                                          <Check size={14} />
-                                        </div>
+                                  setLocation(prev => ({ ...prev, address: val, lat: parsed.lat || prev.lat, lng: parsed.lng || prev.lng }));
+                                  if (!isView && !parsed.lat) setIsSearching('location');
+                                }} />
+                              {location.lat && <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-500/10 text-green-500 p-1.5 rounded-full border border-green-500/20 shadow-sm z-10 transition-all scale-110"><CheckCircle2 size={16} strokeWidth={3} /></div>}
+                               {searchResults.length > 0 && isSearching === 'location' && (
+                                  <div className="absolute top-full left-0 right-0 z-[100] mt-2 bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+                                    {searchResults.map((f, i) => (
+                                      <button key={i} type="button" className="w-full p-4 text-left hover:bg-secondary text-sm border-b border-border last:border-0 transition-colors font-bold group flex items-center justify-between" onClick={() => selectAddress(f, 'location')}>
+                                        <div className="flex flex-col"><span className="text-foreground group-hover:text-primary">{f.properties.name} {f.properties.housenumber}</span><span className="text-[10px] text-muted-foreground uppercase tracking-widest">{[f.properties.city, f.properties.country].filter(Boolean).join(', ')}</span></div>
+                                        <div className="w-6 h-6 rounded-lg bg-secondary flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:bg-primary/20 group-hover:text-primary transition-all"><Check size={14} /></div>
                                       </button>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                                    ))}
+                                  </div>
+                                )}
                             </div>
                           </div>
-                        ))}
+                        )}
+
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Descripción</span>
+                          <textarea readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium min-h-[100px] resize-none transition-all" placeholder="Notas adicionales..." value={description} onChange={e => setDescription(e.target.value)} />
+                        </div>
                       </div>
-                    ) : (
-                      <div className="space-y-3 relative">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Ubicación</span>
-                        <div className="relative">
-                          <MapPin size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                          <input 
-                            readOnly={isView}
-                            className="w-full pl-12 pr-12 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" 
-                            placeholder="Ej: Calle 123, Ciudad" 
-                            value={location.address} 
-                            onChange={e => {
-                              const val = e.target.value;
-                              const parsed = parseMagicLocation(val);
-                              
-                              setLocation(prev => {
-                                if (!val.trim()) return { address: '' };
-                                const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                const oldClean = clean(prev.address || '');
-                                const newClean = clean(val);
-                                const isRefinement = prev.lat && (newClean.includes(oldClean) || oldClean.includes(newClean) || newClean.startsWith(oldClean.substring(0, 10)));
 
-                                return {
-                                  address: val,
-                                  lat: parsed.lat || (isRefinement ? prev.lat : undefined),
-                                  lng: parsed.lng || (isRefinement ? prev.lng : undefined),
-                                };
-                              });
+                      <div className="space-y-6">
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Referencia Reserva</span>
+                          <input readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[var(--radius-lg)] border-2 border-border focus:border-primary/30 outline-none text-base font-bold transition-all uppercase" placeholder="Ej: ABC123XYZ" value={reservationRef} onChange={e => setReservationRef(e.target.value)} />
+                        </div>
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Notas Internas</span>
+                          <textarea readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium min-h-[80px] resize-none transition-all" placeholder="Detalles privados..." value={notes} onChange={e => setNotes(e.target.value)} />
+                        </div>
+                      </div>
+                    </form>
+                  ) : activeTab === 'costos' ? (
+                    <div className="p-4 sm:p-8 space-y-6 sm:space-y-10 pb-24">
+                      <div className="space-y-6 sm:space-y-8 p-6 sm:p-8 bg-secondary/40 rounded-[var(--radius-2xl)] border-2 border-border/50 shadow-inner">
+                        <div className="flex items-center gap-4 ml-1">
+                          <div className="w-10 h-10 rounded-[var(--radius-md)] bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20"><CreditCard size={20} /></div>
+                          <div><h4 className="text-sm font-black uppercase tracking-widest text-foreground">Gestión de Costos</h4><p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">Presupuesto y estados de pago</p></div>
+                        </div>
 
-                              if (!isView && !parsed.lat) setIsSearching('location');
-                            }} 
-                          />
-                          {location.lat && (
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-green-500/10 text-green-500 p-1.5 rounded-full border border-green-500/20 shadow-sm z-10 transition-all scale-110">
-                              <CheckCircle2 size={16} strokeWidth={3} />
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                          <div className="space-y-3">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Moneda</span>
+                            <div className="relative">
+                              <select disabled={isView} className="w-full px-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-base font-bold transition-all appearance-none" value={currency} onChange={e => setCurrency(e.target.value)}>{CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                              <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground"><ChevronDown size={16} /></div>
                             </div>
-                          )}
-                           {searchResults.length > 0 && isSearching === 'location' && (
-                              <div className="absolute top-full left-0 right-0 z-[100] mt-2 bg-popover border border-border rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
-                                {searchResults.map((f, i) => {
-                                  const p = f.properties;
-                                  return (
-                                    <button key={i} type="button" className="w-full p-4 text-left hover:bg-secondary text-sm border-b border-border last:border-0 transition-colors font-bold group flex items-center justify-between" onClick={() => selectAddress(f, 'location')}>
-                                      <div className="flex flex-col">
-                                        <span className="text-foreground group-hover:text-primary transition-colors">{p.name} {p.housenumber}</span>
-                                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">{[p.city, p.country].filter(Boolean).join(', ')}</span>
-                                      </div>
-                                      <div className="w-6 h-6 rounded-lg bg-secondary flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:bg-primary/20 group-hover:text-primary transition-all">
-                                        <Check size={14} />
-                                      </div>
-                                    </button>
-                                  );
-                                })}
+                          </div>
+                          <div className="space-y-3"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Costo Estimado</span><input readOnly={isView} type="number" step="0.01" className="w-full px-6 py-4 bg-background border-2 border-border rounded-[var(--radius-lg)] focus:border-primary/30 outline-none text-base font-bold transition-all" placeholder="0.00" value={estimatedCost} onChange={e => setEstimatedCost(e.target.value)} /></div>
+                          <div className="space-y-3"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Costo Real</span><input readOnly={isView} type="number" step="0.01" className="w-full px-6 py-4 bg-background border-2 border-border rounded-[var(--radius-lg)] focus:border-primary/30 outline-none text-base font-bold transition-all" placeholder="0.00" value={realCost} onChange={e => setRealCost(e.target.value)} /></div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Estado de Pago</span>
+                          <CustomDropdown value={paymentStatus} onChange={setPaymentStatus} options={PAYMENT_STATUS_OPTIONS} placeholder="Seleccionar estado de pago..." />
+                        </div>
+
+                        <div className="pt-6 border-t border-border/50 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div className="space-y-3">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Monto Próximo Pago</span>
+                            <div className="relative">
+                              <CreditCard size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                              <input readOnly={isView} type="number" step="0.01" className="w-full pl-12 pr-6 py-4 bg-background border-2 border-border rounded-[var(--radius-lg)] focus:border-primary/30 outline-none text-base font-bold transition-all" placeholder="0.00" value={nextPaymentAmount} onChange={e => setNextPaymentAmount(e.target.value)} />
+                              <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground uppercase">{currency}</div>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Fecha Próximo Pago</span>
+                            <div className="relative">
+                              <CalendarIcon size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                              <input readOnly={isView} type="date" className="w-full pl-12 pr-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-sm font-bold transition-all" value={nextPaymentDate} onChange={e => setNextPaymentDate(e.target.value)} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : activeTab === 'adjuntos' ? (
+                    <div className="p-8 space-y-8">
+                      {!isView && (
+                        <div className={cn("relative border-4 border-dashed border-border hover:border-primary/50 bg-secondary rounded-[var(--radius-2xl)] p-12 flex flex-col items-center justify-center text-center transition-all group overflow-hidden", isUploading && "pointer-events-none opacity-50")}>
+                          <input type="file" multiple disabled={isUploading} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleFileUpload} />
+                          <div className="w-20 h-20 rounded-[var(--radius-lg)] bg-background flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-xl">{isUploading ? <Loader2 size={32} className="animate-spin" /> : <UploadCloud size={32} />}</div>
+                          <h4 className="text-xl font-black tracking-tight mb-2">{isUploading ? 'Subiendo archivos...' : 'Subir archivos'}</h4>
+                          <p className="text-sm text-muted-foreground max-w-xs">PDFs, imágenes o documentos (Máx. 10MB).</p>
+                        </div>
+                      )}
+                      {attachments.length > 0 && (
+                        <div className="grid grid-cols-1 gap-4">
+                          {attachments.map((att, index) => (
+                            <div key={att.id} className="flex flex-col sm:flex-row gap-4 p-5 bg-secondary border border-border rounded-[var(--radius-lg)] items-start sm:items-center shadow-sm group/att">
+                              <div className="w-12 h-12 rounded-[var(--radius-md)] bg-background flex items-center justify-center flex-shrink-0 shadow-inner group-hover/att:scale-110 transition-transform"><FileIcon size={20} className="text-primary" /></div>
+                              <div className="flex-1 min-w-0 space-y-2 w-full">
+                                 <div className="flex items-center justify-between gap-4"><p className="text-sm font-black truncate">{att.name}</p><a href={att.url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1 shrink-0"><Download size={12} />Ver / Descargar</a></div>
+                                 <input readOnly={isView} className="w-full text-xs px-4 py-2 bg-background border border-border rounded-xl outline-none focus:border-primary/30 transition-all" placeholder="Nota de referencia..." value={att.referenceText} onChange={(e) => { const newAtt = [...attachments]; newAtt[index].referenceText = e.target.value; setAttachments(newAtt); }} />
                               </div>
-                            )}
+                              {!isView && <Button variant="ghost" size="sm" type="button" className="w-12 h-12 p-0 rounded-[var(--radius-md)] bg-secondary/50 border border-border text-destructive hover:bg-destructive hover:text-white transition-all shadow-sm" onClick={() => { setAttachments(attachments.filter(a => a.id !== att.id)); hapticFeedback('warning'); }}><Trash2 size={18} /></Button>}
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Descripción</span>
-                      <textarea readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium min-h-[100px] resize-none transition-all" placeholder="Notas adicionales..." value={description} onChange={e => setDescription(e.target.value)} />
+                      )}
                     </div>
-
-                    {(!isView || url) && (
-                      <div className="space-y-3">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Enlace de Reservación</span>
-                        <input readOnly={isView} type="url" className="w-full px-6 py-4 bg-secondary rounded-[var(--radius-lg)] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium transition-all" placeholder="https://..." value={url} onChange={e => setUrl(e.target.value)} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Referencia Reserva</span>
-                      <input readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[var(--radius-lg)] border-2 border-border focus:border-primary/30 outline-none text-base font-bold transition-all uppercase" placeholder="Ej: ABC123XYZ" value={reservationRef} onChange={e => setReservationRef(e.target.value)} />
-                    </div>
-                    <div className="space-y-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Notas Internas</span>
-                      <textarea readOnly={isView} className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-sm font-medium min-h-[80px] resize-none transition-all" placeholder="Detalles privados..." value={notes} onChange={e => setNotes(e.target.value)} />
-                    </div>
-                  </div>
-                </form>
-              ) : activeTab === 'costos' ? (
-                <div className="p-4 sm:p-8 space-y-6 sm:space-y-10 pb-24">
-                  {/* Section: COSTO */}
-                  <div className="space-y-6 sm:space-y-8 p-6 sm:p-8 bg-secondary/40 rounded-[var(--radius-2xl)] border-2 border-border/50 shadow-inner">
-                    <div className="flex items-center gap-4 ml-1">
-                      <div className="w-10 h-10 rounded-[var(--radius-md)] bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
-                        <CreditCard size={20} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-black uppercase tracking-widest text-foreground">Gestión de Costos</h4>
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">Presupuesto y estados de pago</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                      <div className="space-y-3">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Moneda</span>
-                        <div className="relative">
-                          <select 
-                            disabled={isView} 
-                            className="w-full px-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-base font-bold transition-all appearance-none" 
-                            value={currency} 
-                            onChange={e => setCurrency(e.target.value)}
-                          >
-                            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                          <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                            <ChevronDown size={16} />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Costo Estimado</span>
-                        <input 
-                          readOnly={isView} 
-                          type="number" 
-                          step="0.01" 
-                          className="w-full px-6 py-4 bg-background border-2 border-border rounded-[var(--radius-lg)] focus:border-primary/30 outline-none text-base font-bold transition-all" 
-                          placeholder="0.00" 
-                          value={estimatedCost} 
-                          onChange={e => setEstimatedCost(e.target.value)} 
-                        />
-                      </div>
-
-                      <div className="space-y-3">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Costo Real</span>
-                        <input 
-                          readOnly={isView} 
-                          type="number" 
-                          step="0.01" 
-                          className="w-full px-6 py-4 bg-background border-2 border-border rounded-[var(--radius-lg)] focus:border-primary/30 outline-none text-base font-bold transition-all" 
-                          placeholder="0.00" 
-                          value={realCost} 
-                          onChange={e => setRealCost(e.target.value)} 
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Estado de Pago</span>
-                      <CustomDropdown 
-                        value={paymentStatus} 
-                        onChange={setPaymentStatus} 
-                        options={PAYMENT_STATUS_OPTIONS} 
-                        placeholder="Seleccionar estado de pago..." 
-                      />
-                    </div>
-
-                    <div className="pt-6 border-t border-border/50 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Monto Próximo Pago</span>
-                        <div className="relative">
-                          <CreditCard size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                          <input 
-                            readOnly={isView} 
-                            type="number" 
-                            step="0.01" 
-                            className="w-full pl-12 pr-6 py-4 bg-background border-2 border-border rounded-[var(--radius-lg)] focus:border-primary/30 outline-none text-base font-bold transition-all" 
-                            placeholder="0.00" 
-                            value={nextPaymentAmount} 
-                            onChange={e => setNextPaymentAmount(e.target.value)} 
-                          />
-                          <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground uppercase">{currency}</div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Fecha Próximo Pago</span>
-                        <div className="relative">
-                          <CalendarIcon size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                          <input 
-                            readOnly={isView} 
-                            type="date" 
-                            className="w-full pl-12 pr-6 py-4 bg-background border-2 border-border rounded-[1.5rem] focus:border-primary/30 outline-none text-sm font-bold transition-all" 
-                            value={nextPaymentDate} 
-                            onChange={e => setNextPaymentDate(e.target.value)} 
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : activeTab === 'adjuntos' ? (
-                <div className="p-8 space-y-8">
-                  {!isView && (
-                    <div className={cn(
-                      "relative border-4 border-dashed border-border hover:border-primary/50 bg-secondary rounded-[var(--radius-2xl)] p-12 flex flex-col items-center justify-center text-center transition-all group overflow-hidden",
-                      isUploading && "pointer-events-none opacity-50"
-                    )}>
-                      <input 
-                        type="file" 
-                        multiple 
-                        disabled={isUploading}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                        onChange={handleFileUpload}
-                      />
-                      <div className="w-20 h-20 rounded-[var(--radius-lg)] bg-background flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-xl">
-                        {isUploading ? <Loader2 size={32} className="animate-spin" /> : <UploadCloud size={32} />}
-                      </div>
-                      <h4 className="text-xl font-black tracking-tight mb-2">
-                        {isUploading ? 'Subiendo archivos...' : 'Subir archivos'}
-                      </h4>
-                      <p className="text-sm text-muted-foreground max-w-xs">PDFs, imágenes o documentos (Máx. 10MB).</p>
+                  ) : (
+                    <div className="p-4 sm:p-8 min-h-[400px]">
+                      <GpxTrackTab itemType={type} gpxUrl={gpxUrl} onGpxUrlChange={setGpxUrl} isViewOnly={isView} />
                     </div>
                   )}
-
-                  {attachments.length > 0 && (
-                    <div className="grid grid-cols-1 gap-4">
-                      {attachments.map((att, idx) => (
-                        <div key={att.id} className="flex flex-col sm:flex-row gap-4 p-5 bg-secondary border border-border rounded-[var(--radius-lg)] items-start sm:items-center shadow-sm group/att">
-                          <div className="w-12 h-12 rounded-[var(--radius-md)] bg-background flex items-center justify-center flex-shrink-0 shadow-inner group-hover/att:scale-110 transition-transform">
-                             <FileIcon size={20} className="text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0 space-y-2 w-full">
-                             <div className="flex items-center justify-between gap-4">
-                               <p className="text-sm font-black truncate">{att.name}</p>
-                               <a 
-                                 href={att.url} 
-                                 target="_blank" 
-                                 rel="noopener noreferrer"
-                                 className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1 shrink-0"
-                               >
-                                 <Download size={12} />
-                                 Ver / Descargar
-                               </a>
-                             </div>
-                             <input 
-                               readOnly={isView}
-                               className="w-full text-xs px-4 py-2 bg-background border border-border rounded-xl outline-none focus:border-primary/30 transition-all"
-                               placeholder="Nota de referencia (ej: Localizador, Asiento, etc.)"
-                               value={att.referenceText}
-                               onChange={(e) => {
-                                 const newAtt = [...attachments];
-                                 newAtt[idx].referenceText = e.target.value;
-                                 setAttachments(newAtt);
-                               }}
-                             />
-                          </div>
-                          {!isView && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              type="button" 
-                              className="w-12 h-12 p-0 rounded-[var(--radius-md)] bg-secondary/50 border border-border text-destructive hover:bg-destructive hover:text-white transition-all shadow-sm" 
-                              onClick={() => {
-                                setAttachments(attachments.filter(a => a.id !== att.id));
-                                hapticFeedback('warning');
-                              }}
-                            >
-                               <Trash2 size={18} />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <GpxTrackTab 
-                  itemType={type}
-                  gpxUrl={gpxUrl}
-                  onGpxUrlChange={setGpxUrl}
-                  isViewOnly={isView}
-                />
-              )}
+                </motion.div>
+              </AnimatePresence>
             </div>
 
-            {/* Fixed Footer */}
             <div className="bg-popover border-t border-border p-6 flex items-center justify-end gap-3 z-[110] shadow-2xl rounded-b-[var(--radius-3xl)]">
-              <Button variant="ghost" type="button" onClick={onClose} className="rounded-[var(--radius-md)] px-8 h-12 font-black uppercase text-xs tracking-widest bg-secondary/50 hover:bg-secondary">
-                {isView ? 'Cerrar' : 'Cancelar'}
-              </Button>
-              {!isView && (
-                <Button onClick={() => handleSubmit()} className="rounded-2xl px-12 h-12 font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                  {mode === 'create' ? 'Crear Ítem' : 'Guardar Cambios'}
-                </Button>
-              )}
+              <Button variant="ghost" type="button" onClick={onClose} className="rounded-[var(--radius-md)] px-8 h-12 font-black uppercase text-xs tracking-widest bg-secondary/50 hover:bg-secondary">{isView ? 'Cerrar' : 'Cancelar'}</Button>
+              {!isView && <Button onClick={() => handleSubmit()} className="rounded-2xl px-12 h-12 font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">{mode === 'create' ? 'Crear Ítem' : 'Guardar Cambios'}</Button>}
             </div>
 
-            {/* The Moots Picker Overlay */}
             <AnimatePresence>
               {isPickerOpen && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setIsPickerOpen(false)}
-                    className="absolute inset-0 bg-black/80 backdrop-blur-3xl"
-                  />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 30 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                    className="relative w-full max-w-4xl bg-background rounded-[var(--radius-3xl)] shadow-2xl overflow-hidden border border-border"
-                  >
-                    <MootsTimePicker 
-                      startDate={startTime} 
-                      endDate={endTime || ''} 
-                      onCancel={() => setIsPickerOpen(false)}
-                      onSave={(s: string, e: string) => {
-                        setStartTime(s);
-                        setEndTime(e);
-                        setIsPickerOpen(false);
-                      }}
-                    />
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPickerOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-3xl" />
+                  <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }} className="relative w-full max-w-4xl bg-background rounded-[var(--radius-3xl)] shadow-2xl overflow-hidden border border-border">
+                    <MootsTimePicker startDate={startTime} endDate={endTime || ''} onCancel={() => setIsPickerOpen(false)} onSave={(s, e) => { setStartTime(s); setEndTime(e); setIsPickerOpen(false); }} />
                   </motion.div>
                 </div>
               )}
             </AnimatePresence>
-            <IconPickerModal 
-              isOpen={isIconPickerOpen} 
-              onClose={() => setIsIconPickerOpen(false)} 
-              onSelect={setCustomIconName}
-              selectedIconName={customIconName}
-            />
 
-            {isPickerOpen && (
-              <MootsTimePicker 
-                startDate={startTime}
-                endDate={endTime}
-                onSave={(s, e) => {
-                  setStartTime(s);
-                  setEndTime(e);
-                  setIsPickerOpen(false);
-                }}
-                onCancel={() => setIsPickerOpen(false)}
-              />
-            )}
+            <IconPickerModal isOpen={isIconPickerOpen} onClose={() => setIsIconPickerOpen(false)} onSelect={setCustomIconName} selectedIconName={customIconName} />
           </motion.div>
         </div>
       )}

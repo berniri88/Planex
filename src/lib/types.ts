@@ -45,15 +45,25 @@ export interface TravelItem {
   status: 'idea' | 'tentativo' | 'confirmado';
   branchId?: string; // Which branch this item belongs to
   
-  // Payment tracking
-  payment_status?: 'reference' | 'reserved' | 'paid';
-  amount_paid?: number;
-  next_payment_amount?: number;
-  next_payment_date?: string; // ISO Date
-
   attachments?: Attachment[];
   gpx_url?: string;
   custom_icon?: string; // Lucide icon name (PascalCase)
+  
+  // Payment tracking (v2)
+  payment_status?: 'reference' | 'reserved' | 'partial' | 'paid';
+  amount_paid?: number;
+  next_payment_amount?: number;
+  next_payment_date?: string; // ISO Date
+}
+
+export interface TripParticipant {
+  id: string;
+  trip_id: string;
+  user_id?: string;
+  email?: string;
+  name?: string;
+  is_companion: boolean;
+  created_at: string;
 }
 
 export interface Trip {
@@ -69,6 +79,7 @@ export interface Trip {
   destination: string;
   destinationTimezone: string;
   background_url?: string;
+  participants?: TripParticipant[];
 }
 
 export interface PlanBranch {
@@ -95,6 +106,7 @@ export interface Expense {
   is_private: boolean;
   exchangeRate?: number; // Manual override rate
   convertedAmount?: number; // Amount in trip's main currency
+  travel_item_id?: string; // Link to Itinerary Item
 }
 
 export interface Balance {

@@ -9,7 +9,7 @@ import { Itinerary } from './components/Itinerary';
 import { CreateTripModal } from './components/CreateTripModal';
 import { Expenses } from './components/Expenses';
 import { Button } from './components/ui/Button';
-import { LogOut, Calendar, Landmark, ArrowLeft, Pencil, Moon, Sun, Map as MapIcon } from 'lucide-react';
+import { LogOut, Calendar, DollarSign, ArrowLeft, Pencil, Moon, Sun, Map as MapIcon } from 'lucide-react';
 import { hapticFeedback } from './lib/haptics';
 import { MapView } from './components/MapView';
 
@@ -105,7 +105,7 @@ const TripContainer = () => {
   const tabs = [
     { id: 'timeline', label: 'Itinerary', icon: Calendar },
     { id: 'map', label: 'Map', icon: MapIcon },
-    { id: 'expenses', label: 'Expenses', icon: Landmark },
+    { id: 'expenses', label: 'Expenses', icon: DollarSign },
   ] as const;
 
   return (

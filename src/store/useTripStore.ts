@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { type Trip, type PlanBranch, type TravelItem } from '../lib/types';
+import { type Trip, type PlanBranch, type TravelItem, type TripParticipant } from '../lib/types';
 import { hapticFeedback, hapticSelection } from '../lib/haptics';
 import { supabase } from '../lib/supabase';
 
@@ -14,7 +14,7 @@ interface TripState {
   
   // Actions
   fetchTrips: () => Promise<void>;
-  createTrip: (trip: Omit<Trip, 'id' | 'status'>) => Promise<void>;
+  createTrip: (trip: Omit<Trip, 'id' | 'status'>) => Promise<Trip | undefined>;
   setActiveTrip: (id: string) => void;
   setActiveBranch: (branchId: string) => void;
   createBranch: (name: string, description: string, color: string) => Promise<void>;
@@ -23,6 +23,12 @@ interface TripState {
   updateItineraryItem: (id: string, updates: Partial<TravelItem>) => Promise<void>;
   removeItineraryItem: (id: string) => Promise<void>;
   updateTrip: (id: string, updates: Partial<Trip>) => Promise<void>;
+  
+  // Participants
+  fetchParticipants: (tripId: string) => Promise<void>;
+  addParticipant: (participant: Omit<TripParticipant, 'id' | 'created_at'>) => Promise<void>;
+  updateParticipant: (id: string, updates: Partial<TripParticipant>) => Promise<void>;
+  removeParticipant: (id: string) => Promise<void>;
   
   // Computed
   getActiveTrip: () => Trip | undefined;
@@ -67,7 +73,17 @@ export const useTripStore = create<TripState>()(
                currentTripId = mappedTrips[0].id;
             }
 
-            set({ trips: mappedTrips as any, activeTripId: currentTripId });
+
+            // 1.5 Fetch Participants for all trips
+            const { data: participants, error: partError } = await supabase.from('trip_participants').select('*');
+            if (partError) console.error("Error fetching participants:", partError);
+
+            const tripsWithParticipants = mappedTrips.map(t => ({
+              ...t,
+              participants: participants?.filter((p: any) => p.trip_id === t.id) || []
+            }));
+
+            set({ trips: tripsWithParticipants as any, activeTripId: currentTripId });
             
             // 2. Fetch Branches for current active trip
             const { data: branches, error: branchError } = await supabase
@@ -146,6 +162,8 @@ export const useTripStore = create<TripState>()(
         await get().fetchTrips();
         set({ activeTripId: trip.id });
         hapticFeedback('success');
+        
+        return get().trips.find(t => t.id === trip.id);
       },
 
       setActiveTrip: (id) => {
@@ -305,6 +323,71 @@ export const useTripStore = create<TripState>()(
         await get().fetchTrips();
         set({ activeBranchId: targetBranchId });
         hapticFeedback('success');
+      },
+
+      fetchParticipants: async (tripId) => {
+        const { data, error } = await supabase.from('trip_participants').select('*').eq('trip_id', tripId);
+        if (error) {
+          console.error("Error fetching participants:", error);
+          return;
+        }
+        set(state => ({
+          trips: state.trips.map(t => t.id === tripId ? { ...t, participants: data as any } : t)
+        }));
+      },
+
+      addParticipant: async (participant) => {
+        const { data, error } = await supabase.from('trip_participants').insert([participant]).select().single();
+        if (error) {
+          console.error("Error adding participant:", error);
+          return;
+        }
+        set(state => ({
+          trips: state.trips.map(t => t.id === participant.trip_id ? { 
+            ...t, 
+            participants: [...(t.participants || []), data as any] 
+          } : t)
+        }));
+        hapticFeedback('success');
+      },
+
+      updateParticipant: async (id, updates) => {
+        const { data, error } = await supabase.from('trip_participants').update(updates).eq('id', id).select().single();
+        if (error) {
+          console.error("Error updating participant:", error);
+          return;
+        }
+        set(state => ({
+          trips: state.trips.map(t => t.id === data.trip_id ? { 
+            ...t, 
+            participants: t.participants?.map(p => p.id === id ? { ...p, ...data } : p) 
+          } : t)
+        }));
+        hapticFeedback('success');
+      },
+
+      removeParticipant: async (id) => {
+        // Find tripId first
+        let tripId = '';
+        get().trips.forEach(t => {
+          if (t.participants?.some(p => p.id === id)) tripId = t.id;
+        });
+
+        const { error } = await supabase.from('trip_participants').delete().eq('id', id);
+        if (error) {
+          console.error("Error removing participant:", error);
+          return;
+        }
+
+        if (tripId) {
+          set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? { 
+              ...t, 
+              participants: t.participants?.filter(p => p.id !== id) 
+            } : t)
+          }));
+        }
+        hapticFeedback('warning');
       },
 
       getActiveTrip: () => {
