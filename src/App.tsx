@@ -47,8 +47,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <header className="fixed top-[env(safe-area-inset-top)] left-0 right-0 h-[72px] bg-background flex items-center justify-between px-6 z-[100] border-b border-border shadow-none transition-colors">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate('/')}>
-              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 group-hover:scale-110 transition-transform duration-500">
-                <span className="text-white text-lg font-black italic">P</span>
+              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
+                <span className="material-symbols-outlined text-white text-[24px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 700" }}>map_pin_heart</span>
               </div>
               <h1 className="text-2xl font-black tracking-tight text-foreground">Planex</h1>
             </div>

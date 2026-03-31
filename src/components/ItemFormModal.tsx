@@ -449,7 +449,7 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData, initialTab }
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-popover rounded-[var(--radius-3xl)] shadow-2xl w-full max-w-3xl flex flex-col h-[90vh] sm:h-[85vh] max-h-[95vh] pointer-events-auto border border-border relative"
+            className="bg-popover rounded-[var(--radius-3xl)] shadow-2xl w-full max-w-3xl flex flex-col h-[95vh] max-h-[95vh] pointer-events-auto border border-border relative"
           >
             <div className="flex items-center justify-between border-b border-border bg-secondary/30 backdrop-blur-md h-16 sm:h-20 shrink-0 rounded-t-[var(--radius-3xl)] z-[120]">
               <div className="flex items-center h-full min-w-0">
@@ -511,7 +511,12 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData, initialTab }
                   className="w-full"
                 >
                   {activeTab === 'info' ? (
-                    <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6 sm:space-y-10 pb-24">
+                    <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6 sm:space-y-8 pb-24">
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Título del Ítem *</span>
+                        <input readOnly={isView} required className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-xl font-black transition-all shadow-sm" placeholder="Ej: Vuelo Buenos Aires -> Tokyo" value={name} onChange={e => setName(e.target.value)} />
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                         <div className="space-y-3">
                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Tipo de Ítem</span>
@@ -533,26 +538,25 @@ export const ItemFormModal = ({ isOpen, onClose, mode, initialData, initialTab }
 
                       <div className="space-y-6">
                         <div className="space-y-3">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Título *</span>
-                          <input readOnly={isView} required className="w-full px-6 py-4 bg-secondary rounded-[1.5rem] border-2 border-border focus:border-primary/30 outline-none text-base font-bold transition-all" placeholder="Ej: Vuelo Buenos Aires -> Tokyo" value={name} onChange={e => setName(e.target.value)} />
-                        </div>
-
-                        <div className="space-y-3">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Horario</span>
-                          <button type="button" disabled={isView} onClick={() => setIsPickerOpen(true)} className={cn("w-full group relative overflow-hidden flex flex-col sm:flex-row gap-4 p-6 sm:p-8 rounded-[var(--radius-2xl)] bg-secondary border-2 border-border hover:border-primary/30 transition-all duration-500", isPickerOpen && "ring-4 ring-primary/10 border-primary/40")}>
-                            <div className="flex-1 space-y-3 text-left">
-                               <div className="flex items-center gap-2 text-muted-foreground/60"><CalendarIcon size={14} /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Inicio</span></div>
-                               <div className="space-y-1">
-                                  <p className="text-base font-black text-foreground truncate">{new Date(startTime || Date.now()).toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                                  <p className="text-4xl font-black tracking-tighter text-primary">{new Date(startTime || Date.now()).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Horario y Cronograma</span>
+                          <button type="button" disabled={isView} onClick={() => setIsPickerOpen(true)} className={cn("w-full group relative overflow-hidden flex flex-col sm:flex-row gap-4 p-5 sm:p-6 rounded-[var(--radius-2xl)] bg-secondary border-2 border-border hover:border-primary/30 transition-all duration-500", isPickerOpen && "ring-4 ring-primary/10 border-primary/40")}>
+                            <div className="flex-1 text-left">
+                               <div className="flex items-center gap-2 text-muted-foreground/60 mb-1.5"><CalendarIcon size={14} /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Inicio</span></div>
+                               <div className="flex items-center gap-3">
+                                  <span className="text-base font-black text-foreground">{new Date(startTime || Date.now()).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                  <div className="px-2 py-1 bg-primary/10 rounded-lg border border-primary/20">
+                                    <span className="text-lg font-black text-primary leading-none">{new Date(startTime || Date.now()).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+                                  </div>
                                </div>
                             </div>
-                            <div className="flex items-center justify-center opacity-20"><div className="w-px h-12 bg-foreground hidden sm:block" /><div className="h-px w-full bg-foreground sm:hidden" /></div>
-                            <div className="flex-1 space-y-3 text-left">
-                               <div className="flex items-center gap-2 text-muted-foreground/60"><Clock size={14} /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Fin</span></div>
-                               <div className="space-y-1">
-                                  <p className="text-base font-black text-foreground truncate">{endTime ? new Date(endTime).toLocaleDateString('es-ES', { month: 'long', day: 'numeric', year: 'numeric' }) : '-'}</p>
-                                  <p className="text-4xl font-black tracking-tighter text-muted-foreground/40">{endTime ? new Date(endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'}</p>
+                            <div className="flex items-center justify-center opacity-10"><div className="w-px h-10 bg-foreground hidden sm:block" /><div className="h-px w-full bg-foreground sm:hidden" /></div>
+                            <div className="flex-1 text-left">
+                               <div className="flex items-center gap-2 text-muted-foreground/60 mb-1.5"><Clock size={14} /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Fin</span></div>
+                               <div className="flex items-center gap-3">
+                                  <span className="text-base font-black text-foreground">{endTime ? new Date(endTime).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</span>
+                                  <div className={cn("px-2 py-1 rounded-lg border", endTime ? "bg-muted/30 border-border" : "bg-transparent border-dashed border-border/40")}>
+                                    <span className={cn("text-lg font-black leading-none", endTime ? "text-muted-foreground" : "text-muted-foreground/30")}>{endTime ? new Date(endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'}</span>
+                                  </div>
                                </div>
                             </div>
                           </button>

@@ -56,9 +56,9 @@ export const Login = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 400, damping: 15 }}
-            className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center shadow-xl shadow-primary/20 mb-4"
+            className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center shadow-xl shadow-primary/20 mb-4 overflow-hidden"
           >
-            <span className="text-white text-3xl font-bold italic">P</span>
+            <span className="material-symbols-outlined text-white text-[32px]" style={{ fontVariationSettings: "'FILL' 1, 'wght' 700" }}>map_pin_heart</span>
           </motion.div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Planex</h1>
           <p className="text-muted-foreground mt-2">Premium Travel Planning for Groups</p>

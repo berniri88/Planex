@@ -113,12 +113,17 @@ const ItineraryItemCard = ({ item, isConflicted, laneColor, isHovered, onEdit }:
                     <div className="flex items-center gap-1 px-1.5 py-0.5 bg-muted/40 rounded-full border border-border/20 text-[8px] font-black text-muted-foreground/70 uppercase tracking-tighter ml-1.5 shrink-0 group-hover:bg-muted group-hover:text-muted-foreground transition-colors">
                       <Clock size={9} strokeWidth={3} />
                       {(() => {
-                        const s = new Date(item.start_time).getTime();
-                        const e = item.end_time ? new Date(item.end_time).getTime() : s + 3600000;
-                        const h = Math.floor((e - s) / 3600000);
-                        const m = Math.round(((e - s) % 3600000) / 60000);
-                        if (h >= 24) return `${Math.floor(h/24)}d ${h%24}h`;
-                        return h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ''}` : `${m}m`;
+                        const s_ts = new Date(item.start_time).getTime();
+                        const e_ts = item.end_time ? new Date(item.end_time).getTime() : s_ts + 3600000;
+                        const durationMs = e_ts - s_ts;
+                        const totalHours = Math.floor(durationMs / 3600000);
+                        const days = Math.floor(totalHours / 24);
+                        const hours = totalHours % 24;
+                        const minutes = Math.round((durationMs % 3600000) / 60000);
+                        
+                        if (days > 0) return `${days}d${hours > 0 ? ` ${hours}h` : ''}${minutes > 0 ? ` ${minutes}m` : ''}`;
+                        if (hours > 0) return `${hours}h${minutes > 0 ? ` ${minutes}m` : ''}`;
+                        return `${minutes}m`;
                       })()}
                     </div>
                   </span>
@@ -434,6 +439,7 @@ export const Itinerary = () => {
     </motion.div>
   );
 };
+
 const GanttView = ({ items, onEdit }: { items: TravelItem[], onEdit: (it: TravelItem) => void }) => {
   const getLaneIndex = (type: string) => {
     if (['vuelo', 'bus', 'tren', 'taxi', 'otro_transporte'].includes(type)) return 0;
@@ -443,15 +449,75 @@ const GanttView = ({ items, onEdit }: { items: TravelItem[], onEdit: (it: Travel
 
   const startTimePoints = items.map(it => new Date(it.start_time).getTime());
   const endTimePoints = items.map(it => it.end_time ? new Date(it.end_time).getTime() : new Date(it.start_time).getTime() + 3600000);
-  const minTime = Math.min(...startTimePoints);
-  const maxTime = Math.max(...endTimePoints);
-  const totalDuration = maxTime - minTime;
+  
+  const earliestDate = items.length > 0 ? new Date(Math.min(...startTimePoints)) : new Date();
+  earliestDate.setHours(0, 0, 0, 0);
+  const minTime = earliestDate.getTime();
+  
+  const latestDate = items.length > 0 ? new Date(Math.max(...endTimePoints)) : new Date();
+  latestDate.setHours(23, 59, 59, 999);
+  const maxTime = latestDate.getTime();
+  
+  const totalDuration = Math.max(maxTime - minTime, 86400000);
   
   // Grid config
   const pxPerHour = 60;
-  const laneHeight = 80;
   const headerHeight = 60;
-  
+  const ITEM_HEIGHT = 48;
+  const ITEM_GAP = 8;
+  const LANE_PADDING = 32;
+
+  // 1. Group items by lane and assign rows to avoid overlap
+  const laneData = useMemo(() => {
+    return [0, 1, 2].map(laneId => {
+      const laneItems = items
+        .filter(it => getLaneIndex(it.type) === laneId)
+        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+      const rows: TravelItem[][] = [];
+      const itemsWithRow = laneItems.map(item => {
+        const s = new Date(item.start_time).getTime();
+        const e = item.end_time ? new Date(item.end_time).getTime() : s + 3600000;
+
+        let rowIndex = 0;
+        while (true) {
+          if (!rows[rowIndex]) {
+            rows[rowIndex] = [item];
+            return { item, rowIndex };
+          }
+          const overlaps = rows[rowIndex].some(other => {
+            const os = new Date(other.start_time).getTime();
+            const oe = other.end_time ? new Date(other.end_time).getTime() : os + 3600000;
+            // Add a small buffer (1 minute) to avoid pixel-perfect touch overlaps
+            return Math.max(s, os) < Math.min(e, oe);
+          });
+          if (!overlaps) {
+            rows[rowIndex].push(item);
+            return { item, rowIndex };
+          }
+          rowIndex++;
+        }
+      });
+
+      const rowCount = Math.max(1, rows.length);
+      const height = Math.max(100, rowCount * ITEM_HEIGHT + (rowCount - 1) * ITEM_GAP + LANE_PADDING);
+      
+      return { laneId, items: itemsWithRow, rowCount, height };
+    });
+  }, [items]);
+
+  // 2. Calculate offsets
+  const laneMetrics = useMemo(() => {
+    let currentY = 0;
+    return laneData.map(lane => {
+      const y = currentY;
+      currentY += lane.height;
+      return { ...lane, y };
+    });
+  }, [laneData]);
+
+  const totalGanttHeight = laneMetrics.reduce((sum, l) => sum + l.height, 0);
+
   const lanes = [
      { id: 0, label: 'Viaje', color: LANE_COLORS[0] },
      { id: 1, label: 'Hospedaje', color: LANE_COLORS[1] },
@@ -465,49 +531,49 @@ const GanttView = ({ items, onEdit }: { items: TravelItem[], onEdit: (it: Travel
     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="bg-card border border-border shadow-2xl relative">
        <div className="flex flex-col">
           <div className="overflow-x-auto custom-scrollbar pb-4">
-             <div className="relative" style={{ width: `${gridWidth}px`, height: `${lanes.length * laneHeight + headerHeight}px` }}>
+             <div className="relative" style={{ width: `${gridWidth}px`, height: `${totalGanttHeight + headerHeight}px` }}>
                 {/* Header (Time axis) - STICKY TOP */}
                 <div className="sticky top-0 left-0 flex border-b border-border bg-card/95 backdrop-blur-md z-[70]" style={{ height: `${headerHeight}px`, width: `${gridWidth}px` }}>
-                   {/* Left Empty Corner for Sidebar Alignment - 80px width */}
                    <div className="sticky left-0 flex-none bg-card z-[80] border-r border-border" style={{ width: '80px', height: `${headerHeight}px` }} />
                    
                     <div className="flex">
-                     {Array.from({ length: daysCount }).map((_, i) => {
-                        const dayDate = new Date(minTime + i * 24 * 3600000);
-                        return (
-                           <div key={i} className="flex-none border-r border-border/50 px-4 py-2 relative" style={{ width: `${24 * pxPerHour}px` }}>
-                              {/* Sticky date badge - stays visible but doesn't cross day bounds */}
-                              <div className="sticky left-[84px] w-max pointer-events-none z-50 py-0.5">
-                                 <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 backdrop-blur-sm whitespace-nowrap shadow-sm">
-                                    {dayDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }).toUpperCase()}
-                                 </motion.span>
-                              </div>
-                              <div className="flex justify-between mt-1 opacity-40 text-[8px] font-bold">
-                                 {[0, 6, 12, 18].map(h => <span key={h}>{h}:00</span>)}
-                              </div>
-                           </div>
-                        );
-                     })}
-                   </div>
+                      {Array.from({ length: daysCount }).map((_, i) => {
+                         const dayDate = new Date(minTime + i * 24 * 3600000);
+                         return (
+                            <div key={i} className="flex-none border-r border-border/50 py-2 relative" style={{ width: `${24 * pxPerHour}px` }}>
+                               <div className="sticky left-[84px] w-max pointer-events-none z-50 py-0.5 px-4">
+                                  <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 backdrop-blur-sm whitespace-nowrap shadow-sm">
+                                     {dayDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }).toUpperCase()}
+                                  </motion.span>
+                               </div>
+                               <div className="relative mt-1 h-3 w-full opacity-40 text-[8px] font-bold">
+                                  {[0, 3, 6, 9, 12, 15, 18, 21].map(h => (
+                                    <span key={h} className="absolute -translate-x-1/2" style={{ left: `${h * pxPerHour}px` }}>
+                                      {h}:00
+                                    </span>
+                                  ))}
+                               </div>
+                            </div>
+                         );
+                      })}
+                    </div>
                 </div>
 
                 {/* Grid Content with Sticky Icon Sidebar */}
                 <div className="absolute top-[60px] left-0 bottom-0 pointer-events-none" style={{ width: `${gridWidth}px` }}>
-                   {lanes.map(lane => {
-                      const Icon = lane.id === 0 ? Plane : (lane.id === 1 ? Hotel : Box);
+                   {laneMetrics.map(lane => {
+                      const baseLane = lanes.find(l => l.id === lane.laneId)!;
+                      const Icon = lane.laneId === 0 ? Plane : (lane.laneId === 1 ? Hotel : Box);
                       return (
-                        <div key={lane.id} className="relative flex items-center border-b border-border/10" style={{ height: `${laneHeight}px`, width: `${gridWidth}px` }}>
-                           {/* SIDEBAR: ICON + TEXT (VERTICAL STACK) */}
+                        <div key={lane.laneId} className="relative flex items-center border-b border-border/10 transition-all duration-500" style={{ height: `${lane.height}px`, width: `${gridWidth}px` }}>
                            <div className="sticky left-0 w-20 h-full flex flex-col items-center justify-center gap-1.5 bg-card z-[60] border-r border-border/40 pointer-events-auto shadow-[2px_0_10px_-4px_rgba(0,0,0,0.1)]">
-                              <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center border bg-white dark:bg-zinc-800 shadow-sm transition-all duration-300", lane.color.text, lane.color.border)}>
+                              <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center border bg-white dark:bg-zinc-800 shadow-sm transition-all duration-300", baseLane.color.text, baseLane.color.border)}>
                                  <Icon size={18} strokeWidth={2.5} />
                               </div>
-                              <span className={cn("text-[8px] font-black uppercase tracking-tighter opacity-60 px-1 text-center", lane.color.text)}>
-                                 {lane.label}
+                              <span className={cn("text-[8px] font-black uppercase tracking-tighter opacity-60 px-1 text-center", baseLane.color.text)}>
+                                 {baseLane.label}
                               </span>
                            </div>
-
-                           {/* Content area starts immediately after sidebar now */}
                            <div className="flex-1 h-full" />
                         </div>
                       );
@@ -515,44 +581,84 @@ const GanttView = ({ items, onEdit }: { items: TravelItem[], onEdit: (it: Travel
                 </div>
 
                 {/* Grid Lines Context (Offset by Sidebar) */}
-                <div className="absolute top-[60px] left-20 right-0 bottom-0 pointer-events-none opacity-[0.03]">
+                <div className="absolute top-[60px] left-20 right-0 bottom-0 pointer-events-none">
                    {Array.from({ length: Math.ceil(totalDuration / 3600000) }).map((_, i) => (
-                      <div key={i} className="absolute top-0 bottom-0 border-l border-foreground" style={{ left: `${i * pxPerHour}px` }} />
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "absolute top-0 bottom-0 border-l border-foreground transition-opacity",
+                          i % 3 === 0 ? "opacity-10" : "opacity-[0.02]"
+                        )} 
+                        style={{ left: `${i * pxPerHour}px` }} 
+                      />
                    ))}
                 </div>
 
                 {/* Items Context (Offset by Sidebar) */}
                 <div className="absolute top-[60px] left-20 right-0 bottom-0">
-                   {items.map(it => {
-                      const lane = getLaneIndex(it.type);
-                      const laneCol = LANE_COLORS[lane as keyof typeof LANE_COLORS];
-                      const s = new Date(it.start_time).getTime();
-                      const e = it.end_time ? new Date(it.end_time).getTime() : s + 3600000;
-                      const left = ((s - minTime) / 3600000) * pxPerHour;
-                      const width = Math.max(20, ((e - s) / 3600000) * pxPerHour);
-                      const Icon = CATEGORY_ICONS[it.type] || Box;
+                   {laneMetrics.map(lane => (
+                     lane.items.map(({ item, rowIndex }) => {
+                        const baseLane = lanes.find(l => l.id === lane.laneId)!;
+                        const laneCol = baseLane.color;
+                        const s = new Date(item.start_time).getTime();
+                        const e = item.end_time ? new Date(item.end_time).getTime() : s + 3600000;
+                        const left = ((s - minTime) / 3600000) * pxPerHour;
+                        const width = Math.max(20, ((e - s) / 3600000) * pxPerHour);
+                        const Icon = CATEGORY_ICONS[item.type as keyof typeof CATEGORY_ICONS] || Box;
 
-                      return (
-                         <motion.div 
-                           key={it.id} 
-                           whileHover={{ y: -2 }}
-                           onClick={() => onEdit(it)}
-                           className={cn("absolute rounded-xl border p-2 cursor-pointer transition-all shadow-sm hover:shadow-lg z-20", laneCol.bgLight, laneCol.border)} 
-                           style={{ left: `${left}px`, top: `${lane * laneHeight + (laneHeight - 48) / 2}px`, width: `${width}px`, height: '48px' }}
-                         >
-                            {/* Sticky content wrapper - Offset by sidebar width (80px) + margin */}
-                            <div className="sticky left-[82px] flex items-center gap-2 w-max max-w-full">
-                               <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 bg-white dark:bg-zinc-900 shadow-sm", laneCol.text, laneCol.border.replace('/40', '/20'))}>
-                                  <Icon size={14} />
+                        // Calculate vertical position within the lane
+                        const stackTotalHeight = lane.rowCount * ITEM_HEIGHT + (lane.rowCount - 1) * ITEM_GAP;
+                        const verticalOffset = (lane.height - stackTotalHeight) / 2;
+                        const top = lane.y + verticalOffset + rowIndex * (ITEM_HEIGHT + ITEM_GAP);
+
+                        const sTime = new Date(s).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const eTime = new Date(e).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const diffMs = e - s;
+                        const totalHours = Math.floor(diffMs / 3600000);
+                        const d_diff = Math.floor(totalHours / 24);
+                        const h_diff = totalHours % 24;
+                        const m_diff = Math.round((diffMs % 3600000) / 60000);
+                        
+                        let durationStr = "";
+                        if (d_diff > 0) {
+                          durationStr = `${d_diff}d${h_diff > 0 ? ` ${h_diff}h` : ''}${m_diff > 0 ? ` ${m_diff}m` : ''}`;
+                        } else if (h_diff > 0) {
+                          durationStr = `${h_diff}h${m_diff > 0 ? ` ${m_diff}m` : ''}`;
+                        } else {
+                          durationStr = `${m_diff}m`;
+                        }
+
+                         return (
+                            <motion.div 
+                              key={item.id} 
+                              whileHover={{ 
+                                borderWidth: '2px',
+                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)'
+                              }}
+                              onClick={() => onEdit(item)}
+                              className={cn(
+                                "absolute rounded-xl border p-2 cursor-pointer transition-all z-20 group/item", 
+                                laneCol.bgLight, 
+                                laneCol.border.replace('/40', '/60'),
+                                "shadow-sm hover:z-30"
+                              )} 
+                              style={{ left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${ITEM_HEIGHT}px` }}
+                            >
+                               <div className="sticky left-2 flex items-center gap-2 w-max pointer-events-none">
+                                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 bg-white dark:bg-zinc-900 shadow-sm transition-transform group-hover/item:scale-110", laneCol.text, laneCol.border.replace('/40', '/20'))}>
+                                     <Icon size={14} />
+                                  </div>
+                                  <div className="flex flex-col min-w-0 pr-2">
+                                     <span className="text-[10px] font-bold text-foreground leading-tight whitespace-nowrap">{item.name}</span>
+                                     <span className="text-[8px] font-black text-muted-foreground opacity-60 uppercase tracking-tighter whitespace-nowrap">
+                                        {sTime} - {eTime} ({durationStr})
+                                     </span>
+                                  </div>
                                </div>
-                               <div className="flex flex-col min-w-0 overflow-hidden pr-4">
-                                  <span className="text-[10px] font-bold truncate text-foreground leading-tight">{it.name}</span>
-                                  <span className="text-[8px] font-medium text-muted-foreground opacity-70 truncate">{new Date(s).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                               </div>
-                            </div>
-                         </motion.div>
-                      );
-                   })}
+                            </motion.div>
+                         );
+                      })
+                   ))}
                 </div>
              </div>
           </div>
